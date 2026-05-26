@@ -1,0 +1,8 @@
+{
+  "name": "germanstoryflow-booking",
+  "version": "1.0.0",
+  "description": "German Story Flow booking system",
+  "dependencies": {
+    "googleapis": "^140.0.0"
+  }
+}
