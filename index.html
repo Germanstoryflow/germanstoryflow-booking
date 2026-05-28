@@ -1,773 +1,434 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 <title>Book a Lesson · German Story Flow</title>
-<link rel="preconnect" href="https://fonts.googleapis.com" />
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet" />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet"/>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-
 <style>
-  :root {
-    --blue: #1857a4;
-    --green: #1D9E75;
-    --green-dark: #0F6E56;
-    --green-light: #E8F7F2;
-    --cream: #FAFAF7;
-    --ink: #1a1a1a;
-    --muted: #6b7280;
-    --border: #e5e7eb;
-    --white: #ffffff;
-    --radius: 14px;
-    --shadow: 0 2px 20px rgba(0,0,0,0.06);
-  }
-
-  * { box-sizing: border-box; margin: 0; padding: 0; }
-
-  body {
-    font-family: 'DM Sans', sans-serif;
-    background: var(--cream);
-    color: var(--ink);
-    min-height: 100vh;
-  }
-
-  /* ── HEADER ── */
-  header {
-    background: var(--white);
-    border-bottom: 1px solid var(--border);
-    padding: 0 2rem;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    height: 64px;
-    position: sticky;
-    top: 0;
-    z-index: 100;
-  }
-
-  .logo {
-    font-family: 'DM Serif Display', serif;
-    font-size: 20px;
-    color: var(--blue);
-    text-decoration: none;
-    display: flex;
-    align-items: center;
-    gap: 10px;
-  }
-
-  .logo-flag { font-size: 22px; }
-
-  .lang-bar { display: flex; gap: 6px; }
-  .lang-btn {
-    padding: 5px 13px;
-    border-radius: 20px;
-    border: 1px solid var(--border);
-    background: transparent;
-    color: var(--muted);
-    font-size: 13px;
-    font-family: 'DM Sans', sans-serif;
-    cursor: pointer;
-    transition: all 0.15s;
-  }
-  .lang-btn.active {
-    background: var(--green);
-    color: var(--white);
-    border-color: var(--green);
-  }
-
-  /* ── LAYOUT ── */
-  .page {
-    max-width: 960px;
-    margin: 0 auto;
-    padding: 2.5rem 1.5rem 4rem;
-  }
-
-  /* ── HERO STRIP ── */
-  .hero {
-    background: linear-gradient(120deg, var(--blue) 0%, #1D9E75 100%);
-    border-radius: var(--radius);
-    padding: 2rem 2.5rem;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 2rem;
-    margin-bottom: 2.5rem;
-    color: var(--white);
-    position: relative;
-    overflow: hidden;
-  }
-
-  .hero::before {
-    content: '';
-    position: absolute;
-    right: -60px; top: -60px;
-    width: 220px; height: 220px;
-    border-radius: 50%;
-    background: rgba(255,255,255,0.07);
-  }
-
-  .hero-title {
-    font-family: 'DM Serif Display', serif;
-    font-size: 26px;
-    margin-bottom: 6px;
-  }
-
-  .hero-sub {
-    font-size: 14px;
-    opacity: 0.85;
-  }
-
-  .hero-price {
-    background: rgba(255,255,255,0.15);
-    border: 1px solid rgba(255,255,255,0.25);
-    border-radius: var(--radius);
-    padding: 14px 22px;
-    text-align: center;
-    white-space: nowrap;
-    backdrop-filter: blur(4px);
-    flex-shrink: 0;
-  }
-
-  .hero-price strong {
-    display: block;
-    font-size: 32px;
-    font-family: 'DM Serif Display', serif;
-  }
-
-  .hero-price span { font-size: 13px; opacity: 0.85; }
-
-  /* ── TABS ── */
-  .tabs {
-    display: flex;
-    gap: 0;
-    border-bottom: 2px solid var(--border);
-    margin-bottom: 2rem;
-  }
-
-  .tab {
-    padding: 10px 24px;
-    font-size: 14px;
-    font-weight: 500;
-    color: var(--muted);
-    cursor: pointer;
-    border-bottom: 2px solid transparent;
-    margin-bottom: -2px;
-    transition: all 0.15s;
-    user-select: none;
-  }
-
-  .tab.active { color: var(--green); border-bottom-color: var(--green); }
-  .tab:hover:not(.active) { color: var(--ink); }
-
-  /* ── GRID LAYOUT ── */
-  .booking-grid {
-    display: grid;
-    grid-template-columns: 1fr 320px;
-    gap: 1.5rem;
-    align-items: start;
-  }
-
-  @media (max-width: 720px) {
-    .booking-grid { grid-template-columns: 1fr; }
-    .hero { flex-direction: column; text-align: center; }
-  }
-
-  /* ── CARDS ── */
-  .card {
-    background: var(--white);
-    border-radius: var(--radius);
-    border: 1px solid var(--border);
-    padding: 1.5rem;
-    box-shadow: var(--shadow);
-  }
-
-  .card + .card { margin-top: 1.25rem; }
-
-  .section-title {
-    font-size: 13px;
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.06em;
-    color: var(--muted);
-    margin-bottom: 1rem;
-  }
-
-  /* ── CALENDAR ── */
-  .month-nav {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    margin-bottom: 1rem;
-  }
-
-  .month-nav button {
-    width: 32px; height: 32px;
-    border-radius: 8px;
-    border: 1px solid var(--border);
-    background: transparent;
-    cursor: pointer;
-    font-size: 16px;
-    display: flex; align-items: center; justify-content: center;
-    color: var(--ink);
-    transition: all 0.15s;
-  }
-
-  .month-nav button:hover { background: var(--green-light); border-color: var(--green); }
-
-  .month-name {
-    font-family: 'DM Serif Display', serif;
-    font-size: 17px;
-    color: var(--ink);
-  }
-
-  .cal-grid {
-    display: grid;
-    grid-template-columns: repeat(7, 1fr);
-    gap: 3px;
-  }
-
-  .cal-head {
-    text-align: center;
-    font-size: 11px;
-    font-weight: 600;
-    color: var(--muted);
-    padding: 6px 2px;
-    text-transform: uppercase;
-    letter-spacing: 0.04em;
-  }
-
-  .cal-day {
-    text-align: center;
-    padding: 8px 2px;
-    font-size: 13px;
-    border-radius: 8px;
-    cursor: pointer;
-    transition: all 0.12s;
-    border: 1px solid transparent;
-    color: var(--ink);
-  }
-
-  .cal-day:hover:not(.off):not(.empty) {
-    background: var(--green-light);
-    border-color: var(--green);
-    color: var(--green-dark);
-  }
-
-  .cal-day.selected {
-    background: var(--green);
-    color: var(--white);
-    font-weight: 600;
-  }
-
-  .cal-day.off { color: #d1d5db; cursor: default; }
-  .cal-day.empty { cursor: default; }
-  .cal-day.today { border-color: var(--green); color: var(--green-dark); font-weight: 600; }
-  .cal-day.selected.today { color: var(--white); }
-
-  /* ── TIME SLOTS ── */
-  .slots-grid {
-    display: grid;
-    grid-template-columns: repeat(6, 1fr);
-    gap: 6px;
-    max-height: 320px;
-    overflow-y: auto;
-  }
-
-  .slot {
-    padding: 9px 4px;
-    text-align: center;
-    font-size: 13px;
-    border-radius: 8px;
-    border: 1px solid var(--border);
-    cursor: pointer;
-    transition: all 0.12s;
-    color: var(--ink);
-    background: transparent;
-  }
-
-  .slot:hover { background: var(--green-light); border-color: var(--green); color: var(--green-dark); }
-  .slot.selected { background: var(--green); color: var(--white); border-color: var(--green); font-weight: 600; }
-  .slot.booked { background: #f3f4f6; color: #d1d5db; cursor: not-allowed; text-decoration: line-through; }
-
-  .no-slots {
-    font-size: 13px;
-    color: var(--muted);
-    padding: 8px 0;
-    font-style: italic;
-  }
-
-  /* ── FORM ── */
-  .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-  .form-group { display: flex; flex-direction: column; gap: 6px; margin-bottom: 12px; }
-  .form-group.full { grid-column: 1/-1; }
-
-  label {
-    font-size: 12px;
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-    color: var(--muted);
-  }
-
-  input, select {
-    padding: 10px 12px;
-    border-radius: 10px;
-    border: 1px solid var(--border);
-    font-family: 'DM Sans', sans-serif;
-    font-size: 14px;
-    color: var(--ink);
-    background: var(--white);
-    transition: border 0.15s;
-    outline: none;
-  }
-
-  input:focus, select:focus { border-color: var(--green); box-shadow: 0 0 0 3px rgba(29,158,117,0.12); }
-  input:read-only { background: #f9fafb; color: var(--muted); }
-
-  /* ── PAYMENT ── */
-  .pay-options { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-
-  .pay-opt {
-    padding: 12px;
-    border-radius: 10px;
-    border: 1.5px solid var(--border);
-    cursor: pointer;
-    text-align: center;
-    transition: all 0.15s;
-    font-size: 13px;
-    font-weight: 500;
-    color: var(--ink);
-    background: transparent;
-    font-family: 'DM Sans', sans-serif;
-  }
-
-  .pay-opt:hover { border-color: var(--green); background: var(--green-light); }
-  .pay-opt.selected { border-color: var(--green); background: var(--green-light); color: var(--green-dark); }
-  .pay-opt .pay-icon { font-size: 22px; display: block; margin-bottom: 4px; }
-
-  /* ── SUMMARY SIDEBAR ── */
-  .summary { position: sticky; top: 84px; }
-
-  .summary-row {
-    display: flex;
-    justify-content: space-between;
-    font-size: 14px;
-    padding: 6px 0;
-    color: var(--muted);
-    border-bottom: 1px dashed var(--border);
-  }
-
-  .summary-row:last-of-type { border-bottom: none; }
-
-  .summary-row .val { color: var(--ink); font-weight: 500; }
-
-  .summary-total {
-    display: flex;
-    justify-content: space-between;
-    font-size: 18px;
-    font-family: 'DM Serif Display', serif;
-    color: var(--ink);
-    margin-top: 1rem;
-    padding-top: 1rem;
-    border-top: 2px solid var(--border);
-  }
-
-  .book-btn {
-    width: 100%;
-    padding: 14px;
-    background: var(--green);
-    color: var(--white);
-    border: none;
-    border-radius: 12px;
-    font-size: 15px;
-    font-weight: 600;
-    font-family: 'DM Sans', sans-serif;
-    cursor: pointer;
-    margin-top: 1.25rem;
-    transition: all 0.15s;
-    letter-spacing: 0.02em;
-  }
-
-  .book-btn:hover:not(:disabled) { background: var(--green-dark); transform: translateY(-1px); box-shadow: 0 4px 16px rgba(29,158,117,0.3); }
-  .book-btn:disabled { background: #d1d5db; cursor: not-allowed; transform: none; box-shadow: none; }
-
-  .info-chip {
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    font-size: 12px;
-    color: var(--green-dark);
-    background: var(--green-light);
-    border-radius: 20px;
-    padding: 4px 10px;
-    margin-top: 10px;
-  }
-
-  /* ── DASHBOARD ── */
-  .dash-booking {
-    border: 1px solid var(--border);
-    border-radius: 12px;
-    padding: 1rem 1.25rem;
-    display: flex;
-    align-items: center;
-    gap: 1rem;
-    margin-bottom: 10px;
-    background: var(--white);
-    transition: box-shadow 0.15s;
-  }
-
-  .dash-booking:hover { box-shadow: var(--shadow); }
-
-  .dash-date {
-    background: var(--blue);
-    color: var(--white);
-    border-radius: 10px;
-    text-align: center;
-    padding: 8px 12px;
-    flex-shrink: 0;
-    min-width: 52px;
-  }
-
-  .dash-date .day { font-size: 22px; font-family: 'DM Serif Display', serif; line-height: 1; }
-  .dash-date .mon { font-size: 11px; text-transform: uppercase; letter-spacing: 0.06em; opacity: 0.85; }
-
-  .dash-info { flex: 1; }
-  .dash-info .time { font-size: 15px; font-weight: 600; color: var(--ink); }
-  .dash-info .status { font-size: 12px; color: var(--muted); margin-top: 2px; }
-
-  .status-pill {
-    font-size: 11px;
-    font-weight: 600;
-    padding: 3px 10px;
-    border-radius: 20px;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-  }
-  .status-confirmed { background: var(--green-light); color: var(--green-dark); }
-  .status-pending { background: #fef3c7; color: #92400e; }
-  .status-cancelled { background: #fee2e2; color: #991b1b; }
-
-  /* ── LOGIN ── */
-  .auth-wrap { max-width: 400px; margin: 0 auto; }
-  .auth-toggle { text-align: center; font-size: 13px; color: var(--muted); margin-top: 1rem; }
-  .auth-toggle a { color: var(--green); cursor: pointer; text-decoration: underline; }
-
-  /* ── SUCCESS ── */
-  .success-wrap {
-    text-align: center;
-    padding: 3rem 1rem;
-    max-width: 480px;
-    margin: 0 auto;
-  }
-
-  .success-icon {
-    width: 72px; height: 72px;
-    background: var(--green-light);
-    border-radius: 50%;
-    display: flex; align-items: center; justify-content: center;
-    font-size: 32px;
-    margin: 0 auto 1.5rem;
-  }
-
-  .success-wrap h2 {
-    font-family: 'DM Serif Display', serif;
-    font-size: 26px;
-    margin-bottom: 0.75rem;
-  }
-
-  .success-wrap p { font-size: 15px; color: var(--muted); line-height: 1.6; }
-
-  .ghost-btn {
-    display: inline-block;
-    margin-top: 1.5rem;
-    padding: 10px 24px;
-    border-radius: 10px;
-    border: 1.5px solid var(--green);
-    color: var(--green);
-    font-size: 14px;
-    font-weight: 600;
-    cursor: pointer;
-    background: transparent;
-    font-family: 'DM Sans', sans-serif;
-    transition: all 0.15s;
-  }
-
-  .ghost-btn:hover { background: var(--green); color: var(--white); }
-
-  .dimmed { opacity: 0.35; pointer-events: none; }
-  .hidden { display: none !important; }
-
-  .alert {
-    padding: 10px 14px;
-    border-radius: 10px;
-    font-size: 13px;
-    margin-bottom: 1rem;
-  }
-  .alert-error { background: #fee2e2; color: #991b1b; border: 1px solid #fca5a5; }
-  .alert-info { background: var(--green-light); color: var(--green-dark); border: 1px solid #6ee7b7; }
-
-  .spinner {
-    display: inline-block;
-    width: 16px; height: 16px;
-    border: 2px solid rgba(255,255,255,0.4);
-    border-top-color: white;
-    border-radius: 50%;
-    animation: spin 0.6s linear infinite;
-    vertical-align: middle;
-    margin-right: 6px;
-  }
-  @keyframes spin { to { transform: rotate(360deg); } }
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'Inter',system-ui,sans-serif;background:#f8f9fa;color:#3c4043;font-size:14px;}
+
+/* ── HEADER ── */
+.header{
+  background:#fff;border-bottom:1px solid #dadce0;
+  height:64px;display:flex;align-items:center;
+  justify-content:space-between;padding:0 20px;
+  position:sticky;top:0;z-index:200;
+}
+.logo{display:flex;align-items:center;gap:10px;font-size:18px;font-weight:600;color:#1a73e8;text-decoration:none;}
+.lang-bar{display:flex;gap:4px;}
+.lang-btn{padding:5px 13px;border-radius:20px;border:1px solid #dadce0;background:transparent;color:#5f6368;font-size:13px;cursor:pointer;font-family:inherit;}
+.lang-btn.active{background:#1D9E75;color:#fff;border-color:#1D9E75;}
+
+/* ── TABS ── */
+.tabs{display:flex;gap:0;background:#fff;border-bottom:1px solid #dadce0;padding:0 20px;}
+.tab{padding:14px 20px;font-size:14px;font-weight:500;color:#5f6368;cursor:pointer;border-bottom:3px solid transparent;margin-bottom:-1px;transition:all 0.15s;}
+.tab.active{color:#1D9E75;border-bottom-color:#1D9E75;}
+
+/* ── MAIN LAYOUT ── */
+.main{display:grid;grid-template-columns:1fr 340px;height:calc(100vh - 113px);}
+.cal-panel{overflow:hidden;display:flex;flex-direction:column;border-right:1px solid #dadce0;}
+.side-panel{overflow-y:auto;background:#fff;}
+
+/* ── WEEK NAV ── */
+.week-nav{
+  display:flex;align-items:center;gap:12px;
+  padding:12px 16px;border-bottom:1px solid #dadce0;
+  background:#fff;
+}
+.today-btn{
+  padding:8px 16px;border-radius:20px;border:1px solid #dadce0;
+  background:#fff;font-size:13px;font-weight:500;cursor:pointer;color:#3c4043;font-family:inherit;
+}
+.today-btn:hover{background:#f1f3f4;}
+.nav-arrows{display:flex;gap:2px;}
+.nav-arr{width:32px;height:32px;border-radius:50%;border:none;background:transparent;cursor:pointer;font-size:16px;color:#5f6368;display:flex;align-items:center;justify-content:center;}
+.nav-arr:hover{background:#f1f3f4;}
+.week-title{font-size:18px;font-weight:400;color:#3c4043;flex:1;}
+.view-toggle{display:flex;border:1px solid #dadce0;border-radius:8px;overflow:hidden;}
+.view-btn{padding:6px 14px;border:none;background:#fff;font-size:13px;cursor:pointer;color:#5f6368;font-family:inherit;}
+.view-btn.active{background:#e8f0fe;color:#1a73e8;font-weight:500;}
+
+/* ── WEEK GRID ── */
+.week-grid{flex:1;overflow-y:auto;overflow-x:hidden;position:relative;}
+.week-grid::-webkit-scrollbar{width:6px;}
+.week-grid::-webkit-scrollbar-thumb{background:#dadce0;border-radius:3px;}
+
+.grid-header{
+  display:grid;
+  grid-template-columns:52px repeat(7,1fr);
+  border-bottom:1px solid #dadce0;
+  background:#fff;
+  position:sticky;top:0;z-index:10;
+}
+.grid-header-cell{
+  text-align:center;padding:8px 4px;border-left:1px solid #dadce0;
+}
+.grid-header-cell:first-child{border-left:none;}
+.day-name{font-size:11px;color:#70757a;text-transform:uppercase;letter-spacing:0.05em;}
+.day-num{
+  font-size:24px;font-weight:400;color:#3c4043;
+  width:44px;height:44px;border-radius:50%;
+  display:flex;align-items:center;justify-content:center;
+  margin:4px auto 0;cursor:pointer;
+}
+.day-num:hover{background:#f1f3f4;}
+.day-num.today{background:#1a73e8;color:#fff;}
+.day-num.selected{background:#1D9E75;color:#fff;}
+.day-num.today.selected{background:#1D9E75;}
+.day-num.off-day{color:#dadce0;cursor:default;}
+.day-num.off-day:hover{background:transparent;}
+
+/* ── TIME GRID ── */
+.time-grid{display:grid;grid-template-columns:52px repeat(7,1fr);position:relative;}
+.time-label{
+  font-size:10px;color:#70757a;text-align:right;
+  padding-right:8px;height:60px;display:flex;align-items:flex-start;
+  padding-top:2px;user-select:none;
+}
+.time-col{border-left:1px solid #dadce0;position:relative;height:60px;}
+.time-col.off{background:#f8f9fa;}
+.hour-line{position:absolute;top:0;left:0;right:0;border-top:1px solid #e8eaed;}
+
+/* Slot blocks */
+.slot-block{
+  position:absolute;left:0;right:0;height:15px;
+  border-radius:0;border:none;
+  border-top:1px solid #f1f3f4;
+  cursor:pointer;z-index:5;
+  overflow:hidden;
+  transition:background 0.1s;
+}
+.slot-block::after{
+  content: attr(data-time);
+  position:absolute;left:4px;top:0;
+  font-size:10px;line-height:15px;
+  color:#70757a;opacity:0;
+  transition:opacity 0.1s;
+  pointer-events:none;
+}
+.slot-block.available{background:#fff;}
+.slot-block.available:hover{background:#e8f5e9;}
+.slot-block.available:hover::after{opacity:1;color:#1D9E75;}
+.slot-block.booked{background:#f1f3f4;cursor:not-allowed;}
+.slot-block.selected{background:#1D9E75;}
+.slot-block.selected::after{opacity:1;color:#fff;}
+
+/* Current time line */
+.now-line{
+  position:absolute;left:0;right:0;height:2px;
+  background:#ea4335;z-index:8;pointer-events:none;
+}
+.now-dot{
+  position:absolute;left:-4px;top:-4px;
+  width:10px;height:10px;border-radius:50%;background:#ea4335;
+}
+
+/* ── DAY VIEW (mobile) ── */
+.day-view{flex:1;overflow-y:auto;}
+.day-grid{display:grid;grid-template-columns:52px 1fr;position:relative;}
+
+/* ── SIDE PANEL ── */
+.side-inner{padding:20px;}
+.side-mini-cal{margin-bottom:20px;}
+.mini-month-nav{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;}
+.mini-month-nav button{width:28px;height:28px;border-radius:50%;border:none;background:transparent;cursor:pointer;font-size:14px;color:#5f6368;}
+.mini-month-nav button:hover{background:#f1f3f4;}
+.mini-month-name{font-size:13px;font-weight:500;color:#3c4043;}
+.mini-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:0;}
+.mini-head{text-align:center;font-size:10px;color:#70757a;padding:4px 0;}
+.mini-day{
+  text-align:center;font-size:12px;color:#3c4043;
+  width:28px;height:28px;border-radius:50%;
+  display:flex;align-items:center;justify-content:center;
+  margin:1px auto;cursor:pointer;
+}
+.mini-day:hover:not(.mini-off):not(.mini-empty){background:#f1f3f4;}
+.mini-day.mini-today{background:#1a73e8;color:#fff;font-weight:700;}
+.mini-day.mini-selected{background:#1D9E75;color:#fff;}
+.mini-day.mini-off{color:#dadce0;cursor:default;}
+.mini-day.mini-empty{cursor:default;}
+
+/* Booking form */
+.booking-form{border-top:1px solid #dadce0;padding-top:20px;}
+.form-title{font-size:15px;font-weight:600;color:#3c4043;margin-bottom:16px;}
+.sel-info{
+  background:#e8f5e9;border-radius:8px;padding:12px;
+  margin-bottom:16px;font-size:13px;color:#1D9E75;font-weight:500;
+  display:none;
+}
+.form-group{margin-bottom:12px;}
+.form-group label{display:block;font-size:11px;font-weight:600;color:#70757a;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:5px;}
+.form-group input,.form-group select{
+  width:100%;padding:9px 12px;border-radius:8px;
+  border:1px solid #dadce0;font-family:inherit;font-size:14px;
+  color:#3c4043;background:#fff;outline:none;
+}
+.form-group input:focus,.form-group select:focus{border-color:#1D9E75;box-shadow:0 0 0 2px rgba(29,158,117,0.15);}
+.form-group input:read-only{background:#f8f9fa;color:#5f6368;}
+.pay-row{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:16px;}
+.pay-opt{
+  padding:10px;border-radius:8px;border:1px solid #dadce0;
+  background:#fff;cursor:pointer;text-align:center;font-size:13px;
+  font-weight:500;color:#3c4043;font-family:inherit;transition:all 0.1s;
+}
+.pay-opt:hover{border-color:#1D9E75;background:#e8f5e9;}
+.pay-opt.selected{border-color:#1D9E75;background:#e8f5e9;color:#1D9E75;}
+.book-btn{
+  width:100%;padding:12px;background:#1D9E75;color:#fff;
+  border:none;border-radius:8px;font-size:14px;font-weight:600;
+  cursor:pointer;font-family:inherit;transition:background 0.15s;
+}
+.book-btn:hover:not(:disabled){background:#0F6E56;}
+.book-btn:disabled{background:#dadce0;cursor:default;}
+.summary-box{background:#f8f9fa;border-radius:8px;padding:12px;margin-bottom:12px;}
+.sum-row{display:flex;justify-content:space-between;font-size:13px;color:#5f6368;padding:3px 0;}
+.sum-row.total{font-weight:600;color:#3c4043;border-top:1px solid #dadce0;margin-top:6px;padding-top:8px;font-size:14px;}
+
+/* ── DASHBOARD ── */
+.dash-wrap{padding:20px;max-width:700px;margin:0 auto;}
+.dash-booking{
+  background:#fff;border:1px solid #dadce0;border-radius:12px;
+  padding:16px;margin-bottom:10px;display:flex;align-items:center;gap:16px;
+}
+.dash-date-box{
+  background:#1a73e8;color:#fff;border-radius:10px;
+  text-align:center;padding:8px 12px;min-width:52px;flex-shrink:0;
+}
+.dash-day{font-size:22px;font-weight:700;line-height:1;}
+.dash-mon{font-size:10px;text-transform:uppercase;letter-spacing:0.06em;opacity:0.85;}
+.dash-info{flex:1;}
+.dash-time{font-size:15px;font-weight:600;}
+.dash-sub{font-size:12px;color:#70757a;margin-top:2px;}
+.dash-meet{font-size:12px;color:#1D9E75;font-weight:600;text-decoration:none;display:inline-block;margin-top:4px;}
+.pill{font-size:11px;font-weight:600;padding:3px 10px;border-radius:20px;text-transform:uppercase;letter-spacing:0.04em;}
+.pill-green{background:#e8f5e9;color:#1D9E75;}
+.pill-yellow{background:#fef9c3;color:#b45309;}
+.pill-red{background:#fce8e6;color:#c5221f;}
+
+/* ── SUCCESS ── */
+.success-wrap{text-align:center;padding:48px 20px;max-width:480px;margin:0 auto;}
+.success-icon{width:72px;height:72px;background:#e8f5e9;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:32px;margin:0 auto 20px;}
+.success-wrap h2{font-size:24px;font-weight:600;margin-bottom:10px;}
+.success-wrap p{font-size:14px;color:#5f6368;line-height:1.6;}
+.ghost-btn{display:inline-block;margin-top:20px;padding:10px 24px;border-radius:8px;border:1.5px solid #1D9E75;color:#1D9E75;font-size:14px;font-weight:600;cursor:pointer;background:transparent;font-family:inherit;}
+.ghost-btn:hover{background:#1D9E75;color:#fff;}
+.meet-box{margin-top:20px;padding:16px;background:#e8f5e9;border-radius:12px;border:1px solid #a7f3d0;}
+.meet-box p{font-size:13px;color:#065f46;margin-bottom:10px;}
+
+/* ── AUTH ── */
+.auth-wrap{max-width:400px;margin:40px auto;padding:0 20px;}
+.auth-card{background:#fff;border:1px solid #dadce0;border-radius:12px;padding:24px;}
+.auth-title{font-size:16px;font-weight:600;margin-bottom:4px;}
+.auth-sub{font-size:13px;color:#5f6368;margin-bottom:20px;}
+.auth-toggle{text-align:center;font-size:13px;color:#5f6368;margin-top:14px;}
+.auth-toggle a{color:#1D9E75;cursor:pointer;}
+.alert{padding:10px 14px;border-radius:8px;font-size:13px;margin-bottom:12px;}
+.alert-err{background:#fce8e6;color:#c5221f;border:1px solid #f5c6c2;}
+
+/* ── RESPONSIVE ── */
+@media(max-width:768px){
+  .main{grid-template-columns:1fr;height:auto;}
+  .side-panel{display:none;}
+  .side-panel.show{display:block;position:fixed;right:0;top:113px;bottom:0;width:320px;z-index:100;overflow-y:auto;box-shadow:-4px 0 20px rgba(0,0,0,0.12);}
+  .grid-header{grid-template-columns:40px repeat(7,1fr);}
+  .time-grid{grid-template-columns:40px repeat(7,1fr);}
+  .day-name{font-size:10px;}
+  .day-num{font-size:18px;width:36px;height:36px;}
+  .week-title{font-size:15px;}
+}
+@media(max-width:480px){
+  /* Day view on mobile */
+  .week-mode .grid-header{grid-template-columns:40px repeat(1,1fr);}
+  .week-mode .time-grid{grid-template-columns:40px repeat(1,1fr);}
+}
+
+.spinner{display:inline-block;width:14px;height:14px;border:2px solid rgba(255,255,255,0.4);border-top-color:#fff;border-radius:50%;animation:spin 0.6s linear infinite;vertical-align:middle;margin-right:6px;}
+@keyframes spin{to{transform:rotate(360deg);}}
+.hidden{display:none!important;}
+
+/* Mobile book panel toggle */
+.mobile-book-btn{
+  display:none;position:fixed;bottom:20px;right:20px;
+  background:#1D9E75;color:#fff;border:none;border-radius:50%;
+  width:56px;height:56px;font-size:24px;cursor:pointer;
+  box-shadow:0 4px 16px rgba(29,158,117,0.4);z-index:150;
+}
+@media(max-width:768px){.mobile-book-btn{display:flex;align-items:center;justify-content:center;}}
 </style>
 </head>
 <body>
 
 <!-- HEADER -->
-<header>
-  <a class="logo" href="#">
-    <span class="logo-flag">🇩🇪</span>
-    <span>German Story Flow</span>
-  </a>
+<div class="header">
+  <a class="logo" href="#">🇩🇪 German Story Flow</a>
   <div class="lang-bar">
     <button class="lang-btn active" onclick="setLang('en',this)">EN</button>
     <button class="lang-btn" onclick="setLang('de',this)">DE</button>
     <button class="lang-btn" onclick="setLang('it',this)">IT</button>
   </div>
-</header>
+</div>
 
-<div class="page">
+<!-- TABS -->
+<div class="tabs">
+  <div class="tab active" id="tab-book" onclick="showTab('book')">📅 <span id="tl-book">Book</span></div>
+  <div class="tab" id="tab-dash" onclick="showTab('dash')">👤 <span id="tl-dash">My Lessons</span></div>
+</div>
 
-  <!-- HERO -->
-  <div class="hero">
-    <div>
-      <div class="hero-title" id="hero-title">Book a private lesson</div>
-      <div class="hero-sub" id="hero-sub">50 minutes · German through stories & real conversations · A1 to C1</div>
+<!-- ══ BOOKING VIEW ══ -->
+<div id="view-book">
+  <div class="main">
+
+    <!-- LEFT: Calendar -->
+    <div class="cal-panel">
+
+      <!-- Week nav -->
+      <div class="week-nav">
+        <button class="today-btn" onclick="goToday()" id="btn-today">Today</button>
+        <div class="nav-arrows">
+          <button class="nav-arr" onclick="prevWeek()">‹</button>
+          <button class="nav-arr" onclick="nextWeek()">›</button>
+        </div>
+        <span class="week-title" id="week-title"></span>
+        <div class="view-toggle">
+          <button class="view-btn active" id="vbtn-week" onclick="setView('week')">Week</button>
+          <button class="view-btn" id="vbtn-day" onclick="setView('day')">Day</button>
+        </div>
+      </div>
+
+      <!-- Week grid -->
+      <div class="week-grid" id="week-grid">
+        <div class="grid-header" id="grid-header"></div>
+        <div class="time-grid" id="time-grid"></div>
+      </div>
+
     </div>
-    <div class="hero-price">
-      <strong>€40</strong>
-      <span id="hero-per">per lesson</span>
-    </div>
-  </div>
 
-  <!-- TABS -->
-  <div class="tabs">
-    <div class="tab active" id="tab-book" onclick="showTab('book')">📅 <span id="tl-book">Book a lesson</span></div>
-    <div class="tab" id="tab-dash" onclick="showTab('dash')">👤 <span id="tl-dash">My lessons</span></div>
-  </div>
+    <!-- RIGHT: Booking form -->
+    <div class="side-panel" id="side-panel">
+      <div class="side-inner">
 
-  <!-- ═══════════════════════════════════════════
-       BOOKING VIEW
-  ════════════════════════════════════════════ -->
-  <div id="view-book">
-    <div class="booking-grid">
-
-      <!-- LEFT COLUMN -->
-      <div>
-        <!-- Step 1: Date -->
-        <div class="card" id="card-date">
-          <div class="section-title" id="sl-date">① Choose a date</div>
-          <div class="month-nav">
-            <button onclick="prevMonth()">‹</button>
-            <span class="month-name" id="month-label"></span>
-            <button onclick="nextMonth()">›</button>
+        <!-- Mini calendar -->
+        <div class="side-mini-cal">
+          <div class="mini-month-nav">
+            <button onclick="miniPrev()">‹</button>
+            <span class="mini-month-name" id="mini-month"></span>
+            <button onclick="miniNext()">›</button>
           </div>
-          <div class="cal-grid" id="cal-heads"></div>
-          <div class="cal-grid" id="cal-grid"></div>
+          <div class="mini-grid" id="mini-heads"></div>
+          <div class="mini-grid" id="mini-grid"></div>
         </div>
 
-        <!-- Step 2: Time -->
-        <div class="card dimmed" id="card-time">
-          <div class="section-title" id="sl-time">② Choose a time</div>
-          <div class="slots-grid" id="slots-grid">
-            <span class="no-slots" id="sl-pick-date">← Pick a date first</span>
-          </div>
-        </div>
+        <!-- Booking form -->
+        <div class="booking-form">
+          <div class="form-title" id="ft-title">Book a lesson</div>
+          <div class="sel-info" id="sel-info"></div>
 
-        <!-- Step 3: Your details -->
-        <div class="card dimmed" id="card-details">
-          <div class="section-title" id="sl-details">③ Your details</div>
-          <div id="auth-alert"></div>
-          <div class="form-row">
-            <div class="form-group">
-              <label id="lbl-first">First name</label>
-              <input type="text" id="inp-first" placeholder="Anna" oninput="checkReady()" />
-            </div>
-            <div class="form-group">
-              <label id="lbl-last">Last name</label>
-              <input type="text" id="inp-last" placeholder="Müller" oninput="checkReady()" />
-            </div>
+          <div class="form-group">
+            <label id="lbl-first">First name</label>
+            <input type="text" id="inp-first" oninput="checkReady()"/>
+          </div>
+          <div class="form-group">
+            <label id="lbl-last">Last name</label>
+            <input type="text" id="inp-last" oninput="checkReady()"/>
           </div>
           <div class="form-group">
             <label id="lbl-email">E-mail</label>
-            <input type="email" id="inp-email" placeholder="anna@example.com" oninput="checkReady()" />
+            <input type="email" id="inp-email" oninput="checkReady()"/>
           </div>
           <div class="form-group">
             <label id="lbl-level">German level</label>
             <select id="inp-level" onchange="checkReady()">
-              <option value="">— select —</option>
+              <option value="">—</option>
               <option>A1</option><option>A2</option><option>B1</option><option>B2</option><option>C1</option>
             </select>
           </div>
 
-          <!-- Payment -->
-          <div class="section-title" style="margin-top:1rem" id="sl-pay">④ Payment method</div>
-          <div class="pay-options">
-            <button class="pay-opt" id="pay-paypal" onclick="setPay('paypal')">
-              <span class="pay-icon">🅿</span> PayPal
-            </button>
-            <button class="pay-opt" id="pay-bank" onclick="setPay('bank')">
-              <span class="pay-icon">🏦</span> <span id="lbl-bank">Bank transfer</span>
-            </button>
+          <div class="form-group">
+            <label id="lbl-pay">Payment</label>
+            <div class="pay-row">
+              <button class="pay-opt" id="pay-pp" onclick="setPay('paypal')">🅿 PayPal</button>
+              <button class="pay-opt" id="pay-bk" onclick="setPay('bank')">🏦 <span id="lbl-bank">Bank</span></button>
+            </div>
           </div>
-          <div id="pay-info" style="margin-top:10px; font-size:13px; color:var(--muted);"></div>
-        </div>
-      </div>
 
-      <!-- RIGHT SIDEBAR: Summary -->
-      <div class="summary">
-        <div class="card">
-          <div class="section-title" id="sl-summary">Booking summary</div>
-          <div class="summary-row">
-            <span id="sl-lesson">Private lesson</span>
-            <span class="val">50 min</span>
-          </div>
-          <div class="summary-row">
-            <span id="sl-s-date">Date</span>
-            <span class="val" id="sum-date">—</span>
-          </div>
-          <div class="summary-row">
-            <span id="sl-s-time">Time</span>
-            <span class="val" id="sum-time">—</span>
-          </div>
-          <div class="summary-row">
-            <span id="sl-s-pay">Payment</span>
-            <span class="val" id="sum-pay">—</span>
-          </div>
-          <div class="summary-total">
-            <span id="sl-total">Total</span>
-            <span>€40</span>
+          <div class="summary-box" id="summary-box">
+            <div class="sum-row"><span id="sl-lesson">Private lesson</span><span>50 min</span></div>
+            <div class="sum-row"><span id="sl-date">Date</span><span id="sum-date">—</span></div>
+            <div class="sum-row"><span id="sl-time">Time</span><span id="sum-time">—</span></div>
+            <div class="sum-row total"><span id="sl-total">Total</span><span>€40</span></div>
           </div>
 
           <button class="book-btn" id="book-btn" onclick="submitBooking()" disabled>
             <span id="book-btn-label">Confirm booking</span>
           </button>
-
-          <div class="info-chip">🔒 <span id="sl-secure">Secure & instant confirmation</span></div>
-        </div>
-
-        <div class="card" style="margin-top:1rem; font-size:13px; color:var(--muted); line-height:1.6;">
-          <strong style="color:var(--ink); font-size:13px;" id="sl-avail">Availability</strong><br>
-          <span id="sl-avail-text">Mon–Fri 09:00–21:00 (Wed off)<br>Sat 10:00–17:00 · Sun 10:00–21:00</span>
         </div>
       </div>
+    </div>
 
+  </div>
+</div>
+
+<!-- Mobile FAB -->
+<button class="mobile-book-btn" onclick="toggleMobilePanel()" title="Book">+</button>
+
+<!-- ══ DASHBOARD VIEW ══ -->
+<div id="view-dash" class="hidden">
+  <div id="dash-auth" class="auth-wrap">
+    <div class="auth-card">
+      <div class="auth-title" id="sl-signin">Sign in</div>
+      <div class="auth-sub" id="sl-signin-sub">View your booked lessons</div>
+      <div id="login-alert"></div>
+      <div id="login-form">
+        <div class="form-group"><label>E-mail</label><input type="email" id="login-email"/></div>
+        <div class="form-group"><label id="lbl-pw">Password</label><input type="password" id="login-pw"/></div>
+        <button class="book-btn" onclick="doLogin()" id="login-btn"><span id="lbl-login">Sign in</span></button>
+        <div class="auth-toggle"><a onclick="toggleAuth('register')" id="lbl-goto-reg">No account? Register</a></div>
+      </div>
+      <div id="register-form" class="hidden">
+        <div class="form-group"><label id="lbl-first2">First name</label><input type="text" id="reg-first"/></div>
+        <div class="form-group"><label id="lbl-last2">Last name</label><input type="text" id="reg-last"/></div>
+        <div class="form-group"><label>E-mail</label><input type="email" id="reg-email"/></div>
+        <div class="form-group"><label id="lbl-pw2">Password</label><input type="password" id="reg-pw"/></div>
+        <div class="form-group"><label>Level</label>
+          <select id="reg-level"><option value="">—</option><option>A1</option><option>A2</option><option>B1</option><option>B2</option><option>C1</option></select>
+        </div>
+        <button class="book-btn" onclick="doRegister()" id="reg-btn"><span id="lbl-register">Create account</span></button>
+        <div class="auth-toggle"><a onclick="toggleAuth('login')" id="lbl-goto-login">Already have account? Sign in</a></div>
+      </div>
     </div>
   </div>
-
-  <!-- ═══════════════════════════════════════════
-       DASHBOARD VIEW
-  ════════════════════════════════════════════ -->
-  <div id="view-dash" class="hidden">
-
-    <!-- Not logged in -->
-    <div id="dash-auth" class="auth-wrap">
-      <div class="card">
-        <div class="section-title" id="sl-signin">Sign in to see your lessons</div>
-        <div id="login-alert"></div>
-
-        <!-- LOGIN FORM -->
-        <div id="login-form">
-          <div class="form-group">
-            <label>E-mail</label>
-            <input type="email" id="login-email" placeholder="anna@example.com" />
-          </div>
-          <div class="form-group">
-            <label id="lbl-pw">Password</label>
-            <input type="password" id="login-pw" placeholder="••••••••" />
-          </div>
-          <button class="book-btn" onclick="doLogin()" id="login-btn">
-            <span id="lbl-login">Sign in</span>
-          </button>
-          <div class="auth-toggle"><a onclick="toggleAuth('register')" id="lbl-goto-register">No account yet? Register</a></div>
-        </div>
-
-        <!-- REGISTER FORM -->
-        <div id="register-form" class="hidden">
-          <div class="form-row">
-            <div class="form-group">
-              <label id="lbl-first2">First name</label>
-              <input type="text" id="reg-first" placeholder="Anna" />
-            </div>
-            <div class="form-group">
-              <label id="lbl-last2">Last name</label>
-              <input type="text" id="reg-last" placeholder="Müller" />
-            </div>
-          </div>
-          <div class="form-group">
-            <label>E-mail</label>
-            <input type="email" id="reg-email" placeholder="anna@example.com" />
-          </div>
-          <div class="form-group">
-            <label id="lbl-pw2">Password</label>
-            <input type="password" id="reg-pw" placeholder="Min. 6 characters" />
-          </div>
-          <div class="form-group">
-            <label>German level</label>
-            <select id="reg-level">
-              <option value="">— select —</option>
-              <option>A1</option><option>A2</option><option>B1</option><option>B2</option><option>C1</option>
-            </select>
-          </div>
-          <button class="book-btn" onclick="doRegister()" id="register-btn">
-            <span id="lbl-register">Create account</span>
-          </button>
-          <div class="auth-toggle"><a onclick="toggleAuth('login')" id="lbl-goto-login">Already have an account? Sign in</a></div>
-        </div>
-      </div>
+  <div id="dash-content" class="hidden dash-wrap">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;">
+      <h2 style="font-size:20px;font-weight:600;" id="dash-greeting">My Lessons</h2>
+      <button class="ghost-btn" onclick="doLogout()" id="lbl-logout">Sign out</button>
     </div>
-
-    <!-- Logged in dashboard -->
-    <div id="dash-content" class="hidden">
-      <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:1.5rem;">
-        <div>
-          <h2 style="font-family:'DM Serif Display',serif; font-size:22px;" id="dash-greeting">My lessons</h2>
-          <p style="font-size:13px; color:var(--muted); margin-top:4px;" id="dash-sub">All your upcoming sessions</p>
-        </div>
-        <button class="ghost-btn" onclick="doLogout()" id="lbl-logout">Sign out</button>
-      </div>
-      <div id="dash-list"></div>
-    </div>
+    <div id="dash-list"></div>
   </div>
+</div>
 
-  <!-- ═══════════════════════════════════════════
-       SUCCESS VIEW
-  ════════════════════════════════════════════ -->
-  <div id="view-success" class="hidden">
-    <div class="success-wrap">
-      <div class="success-icon">✅</div>
-      <h2 id="sl-success-title">Booking confirmed!</h2>
-      <p id="sl-success-msg">You'll receive a confirmation e-mail shortly. The lesson has been added to your personal dashboard and a calendar invite is on its way.</p>
-      <div id="meet-link-wrap" class="hidden" style="margin-top:1.5rem; padding:1rem; background:var(--green-light); border-radius:12px; border:1px solid #6ee7b7;">
-        <p style="font-size:13px; color:var(--green-dark); margin-bottom:8px;">🎥 <strong>Google Meet link ready:</strong></p>
-        <a id="meet-link" href="#" target="_blank" class="book-btn" style="display:inline-flex; max-width:280px; margin:0 auto; text-decoration:none;">
-          Join lesson on Google Meet
-        </a>
-      </div>
-      <button class="ghost-btn" onclick="resetBooking()" id="sl-another">Book another lesson</button>
+<!-- ══ SUCCESS VIEW ══ -->
+<div id="view-success" class="hidden">
+  <div class="success-wrap">
+    <div class="success-icon">✅</div>
+    <h2 id="sl-success-title">Booking confirmed!</h2>
+    <p id="sl-success-msg">You'll receive a confirmation e-mail. The lesson was added to your dashboard.</p>
+    <div id="meet-box" class="meet-box hidden">
+      <p>🎥 <strong>Google Meet link:</strong></p>
+      <a id="meet-link" href="#" target="_blank" class="book-btn" style="display:inline-flex;text-decoration:none;margin-top:8px;">Join Google Meet</a>
     </div>
+    <button class="ghost-btn" onclick="resetBooking()" id="sl-another">Book another</button>
   </div>
-
-</div><!-- /page -->
+</div>
 
 <script>
 // ══════════════════════════════════════════════
-// CONFIG — replace with your values
+// CONFIG
 // ══════════════════════════════════════════════
 const SUPABASE_URL = 'https://lqionhqzqilolkbpmqgc.supabase.co';
 const SUPABASE_ANON = 'sb_publishable_r37WAOO8T9F9Uwln6px7dg_Jeeuebfs';
-const TIMEZONE = 'Europe/Rome';
-
 const { createClient } = supabase;
 const sb = createClient(SUPABASE_URL, SUPABASE_ANON);
 
@@ -775,92 +436,74 @@ const sb = createClient(SUPABASE_URL, SUPABASE_ANON);
 // TRANSLATIONS
 // ══════════════════════════════════════════════
 const T = {
-  en: {
-    heroTitle:'Book a private lesson',
-    heroSub:'50 minutes · German through stories & real conversations · A1 to C1',
-    heroPer:'per lesson',
-    tabBook:'Book a lesson', tabDash:'My lessons',
-    slDate:'① Choose a date', slTime:'② Choose a time', slDetails:'③ Your details', slPay:'④ Payment method',
-    slSummary:'Booking summary', slLesson:'Private lesson', slSDate:'Date', slSTime:'Time', slSPay:'Payment', slTotal:'Total',
-    slSecure:'Secure & instant confirmation',
-    slAvail:'Availability', slAvailText:'Mon–Fri 09:00–21:00 (Wed off)<br>Sat 10:00–17:00 · Sun 10:00–21:00',
-    lblFirst:'First name', lblLast:'Last name', lblEmail:'E-mail', lblLevel:'German level',
-    lblBank:'Bank transfer', lblPayPal:'PayPal',
+  en:{
+    tabBook:'Book',tabDash:'My Lessons',
+    btnToday:'Today',viewWeek:'Week',viewDay:'Day',
+    ftTitle:'Book a lesson',
+    lblFirst:'First name',lblLast:'Last name',lblEmail:'E-mail',lblLevel:'German level',
+    lblPay:'Payment',lblBank:'Bank transfer',
+    slLesson:'Private lesson',slDate:'Date',slTime:'Time',slTotal:'Total',
     bookBtn:'Confirm booking',
-    slSignin:'Sign in to see your lessons',
-    lblPw:'Password', lblLogin:'Sign in', lblRegister:'Create account',
-    lblGotoRegister:'No account yet? Register', lblGotoLogin:'Already have an account? Sign in',
-    lblFirst2:'First name', lblLast2:'Last name', lblPw2:'Password',
-    dashGreeting:'My lessons', dashSub:'All your upcoming sessions',
-    lblLogout:'Sign out',
+    slSignin:'Sign in',slSigninSub:'View your booked lessons',
+    lblPw:'Password',lblLogin:'Sign in',lblRegister:'Create account',
+    lblGotoReg:'No account? Register',lblGotoLogin:'Already have account? Sign in',
+    lblFirst2:'First name',lblLast2:'Last name',lblPw2:'Password',
+    dashGreeting:'My Lessons',lblLogout:'Sign out',
     slSuccessTitle:'Booking confirmed! 🎉',
-    slSuccessMsg:"You'll receive a confirmation e-mail shortly. The lesson has been added to your personal dashboard and a calendar invite is on its way.",
-    slAnother:'Book another lesson',
-    pickDate:'← Pick a date first',
-    noSlots:'No slots available this day.',
-    bankInfo:'Please transfer €40 to IBAN: DE00 0000 0000 0000 0000 00 · Ref: your name + date',
+    slSuccessMsg:"You'll receive a confirmation e-mail. The lesson was added to your dashboard.",
+    slAnother:'Book another',
+    noBookings:'No upcoming lessons. Book your first one! 🚀',
+    confirmed:'Confirmed',pending:'Pending',cancelled:'Cancelled',
     months:['January','February','March','April','May','June','July','August','September','October','November','December'],
-    days:['Mon','Tue','Wed','Thu','Fri','Sat','Sun'],
-    confirmed:'Confirmed', pending:'Pending', cancelled:'Cancelled',
-    noBookings:'No upcoming lessons yet. Book your first one! 🚀'
+    days:['Sun','Mon','Tue','Wed','Thu','Fri','Sat'],
+    daysShort:['S','M','T','W','T','F','S'],
+    bankInfo:'Transfer €40 · IBAN: DE00 0000 0000 0000 0000 00 · Ref: your name + date'
   },
-  de: {
-    heroTitle:'Privatstunde buchen',
-    heroSub:'50 Minuten · Deutsch durch Geschichten & echte Gespräche · A1 bis C1',
-    heroPer:'pro Stunde',
-    tabBook:'Stunde buchen', tabDash:'Meine Stunden',
-    slDate:'① Datum wählen', slTime:'② Uhrzeit wählen', slDetails:'③ Deine Angaben', slPay:'④ Zahlungsmethode',
-    slSummary:'Buchungsübersicht', slLesson:'Privatstunde', slSDate:'Datum', slSTime:'Uhrzeit', slSPay:'Zahlung', slTotal:'Gesamt',
-    slSecure:'Sichere & sofortige Bestätigung',
-    slAvail:'Verfügbarkeit', slAvailText:'Mo–Fr 09:00–21:00 (Mi frei)<br>Sa 10:00–17:00 · So 10:00–21:00',
-    lblFirst:'Vorname', lblLast:'Nachname', lblEmail:'E-Mail', lblLevel:'Deutschniveau',
-    lblBank:'Banküberweisung', lblPayPal:'PayPal',
+  de:{
+    tabBook:'Buchen',tabDash:'Meine Stunden',
+    btnToday:'Heute',viewWeek:'Woche',viewDay:'Tag',
+    ftTitle:'Stunde buchen',
+    lblFirst:'Vorname',lblLast:'Nachname',lblEmail:'E-Mail',lblLevel:'Deutschniveau',
+    lblPay:'Zahlung',lblBank:'Überweisung',
+    slLesson:'Privatstunde',slDate:'Datum',slTime:'Uhrzeit',slTotal:'Gesamt',
     bookBtn:'Buchung bestätigen',
-    slSignin:'Anmelden um deine Stunden zu sehen',
-    lblPw:'Passwort', lblLogin:'Anmelden', lblRegister:'Konto erstellen',
-    lblGotoRegister:'Noch kein Konto? Registrieren', lblGotoLogin:'Bereits ein Konto? Anmelden',
-    lblFirst2:'Vorname', lblLast2:'Nachname', lblPw2:'Passwort',
-    dashGreeting:'Meine Stunden', dashSub:'Alle deine bevorstehenden Termine',
-    lblLogout:'Abmelden',
+    slSignin:'Anmelden',slSigninSub:'Deine gebuchten Stunden ansehen',
+    lblPw:'Passwort',lblLogin:'Anmelden',lblRegister:'Konto erstellen',
+    lblGotoReg:'Noch kein Konto? Registrieren',lblGotoLogin:'Bereits Konto? Anmelden',
+    lblFirst2:'Vorname',lblLast2:'Nachname',lblPw2:'Passwort',
+    dashGreeting:'Meine Stunden',lblLogout:'Abmelden',
     slSuccessTitle:'Buchung bestätigt! 🎉',
-    slSuccessMsg:'Du erhältst in Kürze eine Bestätigungs-E-Mail. Der Termin wurde deinem Dashboard und deinem Kalender hinzugefügt.',
+    slSuccessMsg:'Du erhältst eine Bestätigungs-E-Mail. Der Termin wurde deinem Dashboard hinzugefügt.',
     slAnother:'Weitere Stunde buchen',
-    pickDate:'← Bitte zuerst Datum wählen',
-    noSlots:'An diesem Tag keine freien Slots.',
-    bankInfo:'Bitte überweise €40 an IBAN: DE00 0000 0000 0000 0000 00 · Verwendungszweck: dein Name + Datum',
+    noBookings:'Noch keine Stunden gebucht. Buche jetzt! 🚀',
+    confirmed:'Bestätigt',pending:'Ausstehend',cancelled:'Abgesagt',
     months:['Januar','Februar','März','April','Mai','Juni','Juli','August','September','Oktober','November','Dezember'],
-    days:['Mo','Di','Mi','Do','Fr','Sa','So'],
-    confirmed:'Bestätigt', pending:'Ausstehend', cancelled:'Abgesagt',
-    noBookings:'Noch keine Stunden gebucht. Buche jetzt deine erste! 🚀'
+    days:['So','Mo','Di','Mi','Do','Fr','Sa'],
+    daysShort:['S','M','D','M','D','F','S'],
+    bankInfo:'Überweisung €40 · IBAN: DE00 0000 0000 0000 0000 00 · Verwendungszweck: Name + Datum'
   },
-  it: {
-    heroTitle:'Prenota una lezione privata',
-    heroSub:'50 minuti · Tedesco tramite storie & conversazioni reali · A1–C1',
-    heroPer:'a lezione',
-    tabBook:'Prenota', tabDash:'Le mie lezioni',
-    slDate:'① Scegli una data', slTime:'② Scegli un orario', slDetails:'③ I tuoi dati', slPay:'④ Metodo di pagamento',
-    slSummary:'Riepilogo prenotazione', slLesson:'Lezione privata', slSDate:'Data', slSTime:'Orario', slSPay:'Pagamento', slTotal:'Totale',
-    slSecure:'Conferma sicura e immediata',
-    slAvail:'Disponibilità', slAvailText:'Lun–Ven 09:00–21:00 (Mer libero)<br>Sab 10:00–17:00 · Dom 10:00–21:00',
-    lblFirst:'Nome', lblLast:'Cognome', lblEmail:'E-mail', lblLevel:'Livello di tedesco',
-    lblBank:'Bonifico bancario', lblPayPal:'PayPal',
+  it:{
+    tabBook:'Prenota',tabDash:'Le mie lezioni',
+    btnToday:'Oggi',viewWeek:'Settimana',viewDay:'Giorno',
+    ftTitle:'Prenota una lezione',
+    lblFirst:'Nome',lblLast:'Cognome',lblEmail:'E-mail',lblLevel:'Livello tedesco',
+    lblPay:'Pagamento',lblBank:'Bonifico',
+    slLesson:'Lezione privata',slDate:'Data',slTime:'Orario',slTotal:'Totale',
     bookBtn:'Conferma prenotazione',
-    slSignin:'Accedi per vedere le tue lezioni',
-    lblPw:'Password', lblLogin:'Accedi', lblRegister:'Crea account',
-    lblGotoRegister:'Non hai un account? Registrati', lblGotoLogin:'Hai già un account? Accedi',
-    lblFirst2:'Nome', lblLast2:'Cognome', lblPw2:'Password',
-    dashGreeting:'Le mie lezioni', dashSub:'Tutte le sessioni in programma',
-    lblLogout:'Esci',
+    slSignin:'Accedi',slSigninSub:'Visualizza le tue lezioni',
+    lblPw:'Password',lblLogin:'Accedi',lblRegister:'Crea account',
+    lblGotoReg:"Non hai un account? Registrati",lblGotoLogin:'Hai già un account? Accedi',
+    lblFirst2:'Nome',lblLast2:'Cognome',lblPw2:'Password',
+    dashGreeting:'Le mie lezioni',lblLogout:'Esci',
     slSuccessTitle:'Prenotazione confermata! 🎉',
-    slSuccessMsg:"Riceverai a breve una e-mail di conferma. La lezione è stata aggiunta alla tua dashboard e all'invito calendario.",
-    slAnother:'Prenota un\'altra lezione',
-    pickDate:'← Prima seleziona una data',
-    noSlots:'Nessuno slot disponibile in questo giorno.',
-    bankInfo:'Effettua un bonifico di €40 a IBAN: DE00 0000 0000 0000 0000 00 · Causale: nome + data',
+    slSuccessMsg:'Riceverai una e-mail di conferma. La lezione è stata aggiunta alla tua dashboard.',
+    slAnother:'Prenota un\'altra',
+    noBookings:'Nessuna lezione prenotata. Prenota ora! 🚀',
+    confirmed:'Confermata',pending:'In attesa',cancelled:'Annullata',
     months:['Gennaio','Febbraio','Marzo','Aprile','Maggio','Giugno','Luglio','Agosto','Settembre','Ottobre','Novembre','Dicembre'],
-    days:['Lun','Mar','Mer','Gio','Ven','Sab','Dom'],
-    confirmed:'Confermata', pending:'In attesa', cancelled:'Annullata',
-    noBookings:'Nessuna lezione prenotata. Prenota la tua prima! 🚀'
+    days:['Dom','Lun','Mar','Mer','Gio','Ven','Sab'],
+    daysShort:['D','L','M','M','G','V','S'],
+    bankInfo:'Bonifico €40 · IBAN: DE00 0000 0000 0000 0000 00 · Causale: nome + data'
   }
 };
 
@@ -868,14 +511,80 @@ const T = {
 // STATE
 // ══════════════════════════════════════════════
 let lang = 'en';
+let viewMode = 'week'; // 'week' | 'day'
+let weekStart = getWeekStart(new Date());
 let selDate = null, selSlot = null, selPay = null;
-let curYear, curMonth;
-let bookedSlots = []; // slots already taken from DB
+let bookedSlots = {}; // { 'YYYY-MM-DD': [{time,duration},...] }
+let googleBusy = {}; // { 'YYYY-MM-DD': [{startMin,endMin},...] }
+let miniYear, miniMonth;
 let currentUser = null;
 
 const now = new Date();
-curYear = now.getFullYear();
-curMonth = now.getMonth();
+miniYear = now.getFullYear();
+miniMonth = now.getMonth();
+
+// ══════════════════════════════════════════════
+// HELPERS
+// ══════════════════════════════════════════════
+function getWeekStart(d) {
+  const date = new Date(d);
+  const day = date.getDay(); // 0=Sun
+  const diff = day === 0 ? -6 : 1 - day; // Monday first
+  date.setDate(date.getDate() + diff);
+  date.setHours(0,0,0,0);
+  return date;
+}
+
+function addDays(d, n) {
+  const r = new Date(d);
+  r.setDate(r.getDate() + n);
+  return r;
+}
+
+function dateStr(d) {
+  return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+}
+
+function isAvailableDay(d) {
+  const today = new Date(); today.setHours(0,0,0,0);
+  if (d < today) return false;
+  const dow = d.getDay();
+  if (dow === 3) return false; // Wednesday off
+  return true;
+}
+
+function getWorkHours(dow) {
+  if (dow === 3) return null; // Wednesday off
+  if (dow === 0) return {start:10*60, end:21*60}; // Sunday
+  if (dow === 6) return {start:10*60, end:17*60}; // Saturday
+  return {start:9*60, end:21*60}; // Mon-Fri
+}
+
+function minToTime(m) {
+  return String(Math.floor(m/60)).padStart(2,'0') + ':' + String(m%60).padStart(2,'0');
+}
+
+function timeToMin(t) {
+  const [h,m] = t.split(':').map(Number);
+  return h*60+m;
+}
+
+function isSlotBlocked(slotMin, ds) {
+  const sEnd = slotMin + 50 + 10; // lesson + buffer
+  // Check supabase bookings
+  const sb_slots = bookedSlots[ds] || [];
+  for (const b of sb_slots) {
+    const bStart = timeToMin(b.time);
+    const bEnd = bStart + (b.duration||50) + 10;
+    if (slotMin < bEnd && sEnd > bStart) return 'booked';
+  }
+  // Check Google Calendar
+  const g_busy = googleBusy[ds] || [];
+  for (const g of g_busy) {
+    if (slotMin < g.endMin && sEnd > g.startMin) return 'google';
+  }
+  return false;
+}
 
 // ══════════════════════════════════════════════
 // LANG
@@ -885,354 +594,388 @@ function setLang(l, btn) {
   document.querySelectorAll('.lang-btn').forEach(b => b.classList.remove('active'));
   btn.classList.add('active');
   applyLang();
+  renderAll();
 }
 
-function t(k) { return T[lang][k] || ''; }
+function t(k) { return T[lang][k] || k; }
 
 function applyLang() {
+  const s = (id,v) => { const el=document.getElementById(id); if(el) el.textContent=v; };
+  s('tl-book',t('tabBook')); s('tl-dash',t('tabDash'));
+  s('btn-today',t('btnToday'));
+  s('vbtn-week',t('viewWeek')); s('vbtn-day',t('viewDay'));
+  s('ft-title',t('ftTitle'));
+  s('lbl-first',t('lblFirst')); s('lbl-last',t('lblLast'));
+  s('lbl-email',t('lblEmail')); s('lbl-level',t('lblLevel'));
+  s('lbl-pay',t('lblPay')); s('lbl-bank',t('lblBank'));
+  s('sl-lesson',t('slLesson')); s('sl-date',t('slDate'));
+  s('sl-time',t('slTime')); s('sl-total',t('slTotal'));
+  s('book-btn-label',t('bookBtn'));
+  s('sl-signin',t('slSignin')); s('sl-signin-sub',t('slSigninSub'));
+  s('lbl-pw',t('lblPw')); s('lbl-login',t('lblLogin'));
+  s('lbl-register',t('lblRegister'));
+  s('lbl-goto-reg',t('lblGotoReg')); s('lbl-goto-login',t('lblGotoLogin'));
+  s('lbl-first2',t('lblFirst2')); s('lbl-last2',t('lblLast2')); s('lbl-pw2',t('lblPw2'));
+  s('dash-greeting',t('dashGreeting')); s('lbl-logout',t('lblLogout'));
+  s('sl-success-title',t('slSuccessTitle')); s('sl-success-msg',t('slSuccessMsg'));
+  s('sl-another',t('slAnother'));
+}
+
+// ══════════════════════════════════════════════
+// WEEK GRID RENDER
+// ══════════════════════════════════════════════
+const HOUR_H = 60; // px per hour
+const DAY_START = 7; // show from 7am
+const DAY_END = 22;  // show to 10pm
+
+function renderAll() {
+  renderWeekHeader();
+  renderTimeGrid();
+  renderMiniCal();
+  updateWeekTitle();
+}
+
+function updateWeekTitle() {
   const x = T[lang];
-  const set = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = val; };
-  const setHtml = (id, val) => { const el = document.getElementById(id); if (el) el.innerHTML = val; };
-  set('hero-title', x.heroTitle);
-  set('hero-sub', x.heroSub);
-  set('hero-per', x.heroPer);
-  set('tl-book', x.tabBook);
-  set('tl-dash', x.tabDash);
-  set('sl-date', x.slDate);
-  set('sl-time', x.slTime);
-  set('sl-details', x.slDetails);
-  set('sl-pay', x.slPay);
-  set('sl-summary', x.slSummary);
-  set('sl-lesson', x.slLesson);
-  set('sl-s-date', x.slSDate);
-  set('sl-s-time', x.slSTime);
-  set('sl-s-pay', x.slSPay);
-  set('sl-total', x.slTotal);
-  set('sl-secure', x.slSecure);
-  set('sl-avail', x.slAvail);
-  setHtml('sl-avail-text', x.slAvailText);
-  set('lbl-first', x.lblFirst);
-  set('lbl-last', x.lblLast);
-  set('lbl-email', x.lblEmail);
-  set('lbl-level', x.lblLevel);
-  set('lbl-bank', x.lblBank);
-  set('book-btn-label', x.bookBtn);
-  set('sl-signin', x.slSignin);
-  set('lbl-pw', x.lblPw);
-  set('lbl-login', x.lblLogin);
-  set('lbl-register', x.lblRegister);
-  set('lbl-goto-register', x.lblGotoRegister);
-  set('lbl-goto-login', x.lblGotoLogin);
-  set('lbl-first2', x.lblFirst2);
-  set('lbl-last2', x.lblLast2);
-  set('lbl-pw2', x.lblPw2);
-  set('dash-greeting', x.dashGreeting);
-  set('dash-sub', x.dashSub);
-  set('lbl-logout', x.lblLogout);
-  set('sl-success-title', x.slSuccessTitle);
-  set('sl-success-msg', x.slSuccessMsg);
-  set('sl-another', x.slAnother);
-  renderCalendar();
-  if (selDate) renderSlots();
-  if (selPay === 'bank') document.getElementById('pay-info').textContent = x.bankInfo;
-}
-
-// ══════════════════════════════════════════════
-// AVAILABILITY LOGIC
-// ══════════════════════════════════════════════
-function isAvailableDay(date) {
-  const today = new Date(); today.setHours(0,0,0,0);
-  if (date < today) return false;
-  const dow = date.getDay(); // 0=Sun, 3=Wed
-  if (dow === 3) return false; // Wednesday off
-  return true;
-}
-
-function getSlotsForDay(dow) {
-  // dow: 0=Sun,1=Mon,...,6=Sat
-  // Lesson = 50 min + 10 min buffer = 60 min effective block
-  // Slots every 15 minutes, last slot must end (50 min) before closing time
-  let startMin, endMin;
-  if (dow === 0) { startMin = 10*60; endMin = 21*60; }       // Sunday 10:00-21:00
-  else if (dow === 6) { startMin = 10*60; endMin = 17*60; }  // Saturday 10:00-17:00
-  else { startMin = 9*60; endMin = 21*60; }                  // Mon-Fri 09:00-21:00
-
-  const slots = [];
-  // Last possible start: endMin - 50 (lesson must finish before closing)
-  for (let m = startMin; m <= endMin - 50; m += 15) {
-    const h = Math.floor(m / 60);
-    const min = m % 60;
-    slots.push(String(h).padStart(2,'0') + ':' + String(min).padStart(2,'0'));
+  const end = addDays(weekStart, 6);
+  const s = weekStart, e = end;
+  let title;
+  if (s.getMonth() === e.getMonth()) {
+    title = x.months[s.getMonth()] + ' ' + s.getFullYear();
+  } else {
+    title = x.months[s.getMonth()].slice(0,3) + ' – ' + x.months[e.getMonth()].slice(0,3) + ' ' + e.getFullYear();
   }
-  return slots;
+  document.getElementById('week-title').textContent = title;
 }
 
-function slotEndMin(slotStr) {
-  // Returns the minute-of-day when the slot's buffer ends (start + 50 + 10 = +60)
-  const [h, m] = slotStr.split(':').map(Number);
-  return h * 60 + m + 60; // 50 min lesson + 10 min buffer
-}
-
-function slotStartMin(slotStr) {
-  const [h, m] = slotStr.split(':').map(Number);
-  return h * 60 + m;
-}
-
-
-
-// ══════════════════════════════════════════════
-// CALENDAR
-// ══════════════════════════════════════════════
-function renderCalendar() {
+function renderWeekHeader() {
+  const header = document.getElementById('grid-header');
   const x = T[lang];
-  document.getElementById('month-label').textContent = x.months[curMonth] + ' ' + curYear;
+  const cols = viewMode === 'day' ? 1 : 7;
+  header.style.gridTemplateColumns = '52px repeat(' + cols + ',1fr)';
+  header.innerHTML = '<div style="border-left:none;padding:8px 4px;"></div>';
+  const today = new Date(); today.setHours(0,0,0,0);
 
-  // Day headers
-  const heads = document.getElementById('cal-heads');
+  for (let i = 0; i < cols; i++) {
+    const d = viewMode === 'day' ? selDate || today : addDays(weekStart, i);
+    const dow = d.getDay();
+    const isToday = d.getTime() === today.getTime();
+    const isSel = selDate && d.toDateString() === selDate.toDateString();
+    const isOff = !isAvailableDay(d);
+    let numClass = 'day-num';
+    if (isToday) numClass += ' today';
+    if (isSel && !isToday) numClass += ' selected';
+    if (isSel && isToday) numClass += ' selected';
+    if (isOff && !isToday) numClass += ' off-day';
+    const cell = document.createElement('div');
+    cell.className = 'grid-header-cell';
+    cell.innerHTML = `<div class="day-name">${x.days[dow]}</div><div class="${numClass}" onclick="selectDay(${d.getTime()})">${d.getDate()}</div>`;
+    header.appendChild(cell);
+  }
+}
+
+function renderTimeGrid() {
+  const grid = document.getElementById('time-grid');
+  const cols = viewMode === 'day' ? 1 : 7;
+  grid.style.gridTemplateColumns = '52px repeat(' + cols + ',1fr)';
+  grid.innerHTML = '';
+  const today = new Date(); today.setHours(0,0,0,0);
+
+  // Build hour rows
+  for (let h = DAY_START; h <= DAY_END; h++) {
+    // Time label
+    const lbl = document.createElement('div');
+    lbl.className = 'time-label';
+    lbl.textContent = h < DAY_END ? (h < 10 ? '0'+h : h) + ':00' : '';
+    grid.appendChild(lbl);
+
+    // Day columns
+    for (let i = 0; i < cols; i++) {
+      const d = viewMode === 'day' ? selDate || today : addDays(weekStart, i);
+      const hours = getWorkHours(d.getDay());
+      const isWorking = hours && h >= hours.start/60 && h < hours.end/60;
+      const col = document.createElement('div');
+      col.className = 'time-col' + (isWorking ? '' : ' off');
+      col.appendChild(Object.assign(document.createElement('div'), {className:'hour-line'}));
+
+      if (isWorking) {
+        const ds = dateStr(d);
+        // Draw booked events as full 60-min blocks (like Google Calendar)
+        const allBooked = [...(bookedSlots[ds]||[]), ...(googleBusy[ds]||[]).map(g=>({time:minToTime(g.startMin),duration:g.endMin-g.startMin,isGoogle:true}))];
+        allBooked.forEach(b => {
+          const bMin = timeToMin(b.time);
+          if (bMin < h*60 || bMin >= (h+1)*60) return; // only render in correct hour row
+          const topPx = (bMin - h*60);
+          const heightPx = (b.duration||50) + 10; // lesson + buffer
+          const ev = document.createElement('div');
+          ev.style.cssText = `position:absolute;left:2px;right:2px;top:${topPx}px;height:${heightPx}px;border-radius:4px;background:${b.isGoogle?'#e8d5f5':'#dadce0'};border-left:3px solid ${b.isGoogle?'#9334e6':'#70757a'};z-index:6;padding:2px 4px;font-size:10px;color:${b.isGoogle?'#6b1fa6':'#3c4043'};overflow:hidden;cursor:not-allowed;`;
+          ev.textContent = b.isGoogle ? '(busy)' : '(booked)';
+          col.appendChild(ev);
+        });
+        for (let q = 0; q < 4; q++) {
+          const slotMin = h * 60 + q * 15;
+          if (slotMin + 50 > hours.end) continue;
+          const blocked = isSlotBlocked(slotMin, ds);
+          const isSelected = selDate && d.toDateString() === selDate.toDateString() && selSlot === minToTime(slotMin);
+          const timeLabel = minToTime(slotMin);
+
+          const block = document.createElement('div');
+          block.className = 'slot-block ' + (isSelected ? 'selected' : blocked ? 'booked' : 'available');
+          block.style.top = (q * 15) + 'px';
+          block.style.height = '15px';
+          block.setAttribute('data-time', timeLabel);
+
+          if (!blocked || isSelected) {
+            block.onclick = () => selectSlot(d, timeLabel);
+          }
+          col.appendChild(block);
+        }
+      }
+      grid.appendChild(col);
+    }
+  }
+
+  // Current time line
+  const nowH = now.getHours();
+  const nowM = now.getMinutes();
+  if (nowH >= DAY_START && nowH < DAY_END) {
+    // Find today's column
+    for (let i = 0; i < cols; i++) {
+      const d = viewMode === 'day' ? (selDate || today) : addDays(weekStart, i);
+      if (d.toDateString() === today.toDateString()) {
+        const topPx = (nowH - DAY_START) * HOUR_H + (nowM / 60) * HOUR_H;
+        // We'll add it via absolute positioning on the grid wrapper
+        const line = document.createElement('div');
+        line.className = 'now-line';
+        line.style.top = topPx + 'px';
+        line.style.left = '52px';
+        line.innerHTML = '<div class="now-dot"></div>';
+        grid.style.position = 'relative';
+        grid.appendChild(line);
+
+        // Scroll to current time
+        setTimeout(() => {
+          const wg = document.getElementById('week-grid');
+          wg.scrollTop = Math.max(0, topPx - 120);
+        }, 100);
+        break;
+      }
+    }
+  }
+}
+
+// ══════════════════════════════════════════════
+// SELECTION
+// ══════════════════════════════════════════════
+function selectDay(ts) {
+  const d = new Date(ts);
+  if (!isAvailableDay(d)) return;
+  selDate = d;
+  if (viewMode === 'week') renderAll();
+  else renderAll();
+  loadDataForWeek();
+  updateSelInfo();
+}
+
+function selectSlot(d, time) {
+  selDate = d;
+  selSlot = time;
+  document.getElementById('sum-date').textContent = d.getDate() + '.' + (d.getMonth()+1) + '.' + d.getFullYear();
+  document.getElementById('sum-time').textContent = time;
+  renderAll();
+  updateSelInfo();
+  checkReady();
+  // On mobile show panel
+  if (window.innerWidth <= 768) {
+    document.getElementById('side-panel').classList.add('show');
+  }
+}
+
+function updateSelInfo() {
+  const info = document.getElementById('sel-info');
+  if (selDate && selSlot) {
+    info.style.display = 'block';
+    const x = T[lang];
+    info.textContent = '📅 ' + x.days[selDate.getDay()] + ' ' + selDate.getDate() + ' ' + x.months[selDate.getMonth()] + ' · ' + selSlot + ' – 50 min';
+  } else {
+    info.style.display = 'none';
+  }
+}
+
+// ══════════════════════════════════════════════
+// NAVIGATION
+// ══════════════════════════════════════════════
+function prevWeek() {
+  weekStart = addDays(weekStart, -7);
+  renderAll();
+  loadDataForWeek();
+}
+
+function nextWeek() {
+  weekStart = addDays(weekStart, 7);
+  renderAll();
+  loadDataForWeek();
+}
+
+function goToday() {
+  weekStart = getWeekStart(new Date());
+  selDate = new Date();
+  selDate.setHours(0,0,0,0);
+  renderAll();
+  loadDataForWeek();
+}
+
+function setView(v) {
+  viewMode = v;
+  document.getElementById('vbtn-week').classList.toggle('active', v === 'week');
+  document.getElementById('vbtn-day').classList.toggle('active', v === 'day');
+  if (v === 'day' && !selDate) { selDate = new Date(); selDate.setHours(0,0,0,0); }
+  renderAll();
+}
+
+// ══════════════════════════════════════════════
+// MINI CALENDAR
+// ══════════════════════════════════════════════
+function renderMiniCal() {
+  const x = T[lang];
+  document.getElementById('mini-month').textContent = x.months[miniMonth] + ' ' + miniYear;
+  const heads = document.getElementById('mini-heads');
   heads.innerHTML = '';
-  x.days.forEach(d => {
+  // Sun first for mini
+  ['S','M','T','W','T','F','S'].forEach(d => {
     const el = document.createElement('div');
-    el.className = 'cal-head';
+    el.className = 'mini-head';
     el.textContent = d;
     heads.appendChild(el);
   });
-
-  // Days
-  const grid = document.getElementById('cal-grid');
+  const grid = document.getElementById('mini-grid');
   grid.innerHTML = '';
-  const firstDay = new Date(curYear, curMonth, 1);
-  let startDow = firstDay.getDay();
-  startDow = startDow === 0 ? 6 : startDow - 1; // Monday-first
-
+  const first = new Date(miniYear, miniMonth, 1);
+  const startDow = first.getDay();
   for (let i = 0; i < startDow; i++) {
-    const el = document.createElement('div'); el.className = 'cal-day empty'; grid.appendChild(el);
+    const el = document.createElement('div'); el.className = 'mini-day mini-empty'; grid.appendChild(el);
   }
-
-  const daysInMonth = new Date(curYear, curMonth + 1, 0).getDate();
+  const daysInMonth = new Date(miniYear, miniMonth+1, 0).getDate();
   const today = new Date(); today.setHours(0,0,0,0);
-
   for (let d = 1; d <= daysInMonth; d++) {
-    const date = new Date(curYear, curMonth, d);
+    const date = new Date(miniYear, miniMonth, d);
     const el = document.createElement('div');
-    el.className = 'cal-day';
+    el.className = 'mini-day';
     el.textContent = d;
     const avail = isAvailableDay(date);
-    if (!avail) el.classList.add('off');
-    if (date.getTime() === today.getTime()) el.classList.add('today');
-    if (selDate && date.toDateString() === selDate.toDateString()) el.classList.add('selected');
-    if (avail) el.onclick = () => selectDate(new Date(curYear, curMonth, d));
+    if (!avail) el.classList.add('mini-off');
+    if (date.getTime() === today.getTime()) el.classList.add('mini-today');
+    if (selDate && date.toDateString() === selDate.toDateString()) el.classList.add('mini-selected');
+    if (avail) el.onclick = () => {
+      selDate = new Date(miniYear, miniMonth, d);
+      weekStart = getWeekStart(selDate);
+      renderAll();
+      loadDataForWeek();
+    };
     grid.appendChild(el);
   }
 }
 
-async function selectDate(date) {
-  selDate = date;
-  selSlot = null;
-  document.getElementById('sum-date').textContent = date.getDate() + '.' + (date.getMonth()+1) + '.' + date.getFullYear();
-  document.getElementById('sum-time').textContent = '—';
-  renderCalendar();
-  document.getElementById('card-time').classList.remove('dimmed');
-  // Load booked slots from DB
-  await loadBookedSlots(date);
-  renderSlots();
-  checkReady();
-}
+function miniPrev() { miniMonth--; if(miniMonth<0){miniMonth=11;miniYear--;} renderMiniCal(); }
+function miniNext() { miniMonth++; if(miniMonth>11){miniMonth=0;miniYear++;} renderMiniCal(); }
 
-async function loadBookedSlots(date) {
-  const dateStr = date.getFullYear() + '-' + String(date.getMonth()+1).padStart(2,'0') + '-' + String(date.getDate()).padStart(2,'0');
+// ══════════════════════════════════════════════
+// DATA LOADING
+// ══════════════════════════════════════════════
+async function loadDataForWeek() {
+  const days = viewMode === 'week' ? 7 : 1;
+  const dates = [];
+  for (let i = 0; i < days; i++) {
+    const d = viewMode === 'day' ? (selDate || new Date()) : addDays(weekStart, i);
+    dates.push(dateStr(d));
+  }
 
-  // 1. Load from Supabase
-  const { data } = await sb
-    .from('bookings')
-    .select('booking_time, duration_minutes, lesson_type')
-    .eq('booking_date', dateStr)
+  // Load Supabase bookings
+  const { data } = await sb.from('bookings')
+    .select('booking_date, booking_time, duration_minutes')
+    .in('booking_date', dates)
     .eq('status', 'confirmed');
 
-  const supabaseSlots = data ? data.map(r => ({
-    time: r.booking_time.slice(0,5),
-    duration: r.duration_minutes || 50
-  })) : [];
+  bookedSlots = {};
+  if (data) {
+    data.forEach(r => {
+      if (!bookedSlots[r.booking_date]) bookedSlots[r.booking_date] = [];
+      bookedSlots[r.booking_date].push({ time: r.booking_time.slice(0,5), duration: r.duration_minutes || 50 });
+    });
+  }
 
-  // 2. Load from Google Calendar
-  let googleBlocked = [];
+  // Load Google Calendar busy times
+  googleBusy = {};
   try {
-    const res = await fetch(`/.netlify/functions/calendar?date=${dateStr}`);
-    if (res.ok) {
-      const json = await res.json();
-      // Convert Google's blocked ranges to slot-compatible objects
-      if (json.blockedRanges) {
-        json.blockedRanges.forEach(range => {
-          // Mark every 15-min slot that falls within this blocked range
-          for (let m = range.startMin; m < range.endMin; m += 15) {
-            const h = Math.floor(m / 60);
-            const min = m % 60;
-            googleBlocked.push({
-              time: String(h).padStart(2,'0') + ':' + String(min).padStart(2,'0'),
-              duration: range.endMin - m
-            });
-          }
-        });
+    for (const ds of dates) {
+      const res = await fetch(`/.netlify/functions/calendar?date=${ds}`);
+      if (res.ok) {
+        const json = await res.json();
+        if (json.blockedRanges) googleBusy[ds] = json.blockedRanges;
       }
     }
-  } catch (e) {
-    console.warn('Google Calendar check failed:', e);
-    // Non-fatal: continue with just Supabase data
-  }
+  } catch(e) { console.warn('Google Calendar fetch failed:', e); }
 
-  // Merge both sources
-  bookedSlots = [...supabaseSlots, ...googleBlocked];
-}
-
-function isSlotBlocked(slot, booked) {
-  // New slot: starts at sStart, lesson ends at sStart+duration, buffer ends at sStart+duration+10
-  const LESSON = 50;  // standard lesson minutes
-  const BUFFER = 10;
-  const sStart = slotStartMin(slot);
-  const sEnd   = sStart + LESSON + BUFFER; // full block this slot needs
-
-  for (const b of booked) {
-    const bStart = slotStartMin(b.time);
-    const bEnd   = bStart + b.duration + BUFFER; // existing booking's full block
-    // Overlap check
-    if (sStart < bEnd && sEnd > bStart) return true;
-  }
-  return false;
-}
-
-function renderSlots() {
-  const grid = document.getElementById('slots-grid');
-  grid.innerHTML = '';
-  if (!selDate) {
-    grid.innerHTML = '<span class="no-slots">' + t('pickDate') + '</span>';
-    return;
-  }
-  const slots = getSlotsForDay(selDate.getDay());
-  if (!slots.length) {
-    grid.innerHTML = '<span class="no-slots">' + t('noSlots') + '</span>';
-    return;
-  }
-  // Group slots by hour for better readability
-  let lastHour = -1;
-  slots.forEach(s => {
-    const blocked = isSlotBlocked(s, bookedSlots);
-    const [h] = s.split(':').map(Number);
-    if (h !== lastHour) {
-      // Hour label
-      const lbl = document.createElement('div');
-      lbl.style.cssText = 'grid-column:1/-1; font-size:11px; font-weight:600; color:var(--muted); text-transform:uppercase; letter-spacing:0.05em; padding:6px 0 2px; border-top:1px solid var(--border); margin-top:4px;';
-      lbl.textContent = String(h).padStart(2,'0') + ':00';
-      grid.appendChild(lbl);
-      lastHour = h;
-    }
-    const btn = document.createElement('button');
-    btn.className = 'slot' + (selSlot === s ? ' selected' : '') + (blocked ? ' booked' : '');
-    btn.textContent = s;
-    if (!blocked) btn.onclick = () => selectSlot(s);
-    grid.appendChild(btn);
-  });
-}
-
-function selectSlot(s) {
-  selSlot = s;
-  document.getElementById('sum-time').textContent = s;
-  document.getElementById('card-details').classList.remove('dimmed');
-  renderSlots();
-  checkReady();
+  renderTimeGrid();
 }
 
 // ══════════════════════════════════════════════
-// PAYMENT
+// PAYMENT & FORM
 // ══════════════════════════════════════════════
 function setPay(p) {
   selPay = p;
-  document.getElementById('pay-paypal').classList.toggle('selected', p === 'paypal');
-  document.getElementById('pay-bank').classList.toggle('selected', p === 'bank');
-  document.getElementById('sum-pay').textContent = p === 'paypal' ? 'PayPal' : t('lblBank');
-  document.getElementById('pay-info').textContent = p === 'bank' ? t('bankInfo') : '';
+  document.getElementById('pay-pp').classList.toggle('selected', p === 'paypal');
+  document.getElementById('pay-bk').classList.toggle('selected', p === 'bank');
+  if (p === 'bank') {
+    document.getElementById('sel-info').textContent = t('bankInfo');
+    document.getElementById('sel-info').style.display = 'block';
+  } else {
+    updateSelInfo();
+  }
   checkReady();
 }
 
-// ══════════════════════════════════════════════
-// FORM VALIDATION
-// ══════════════════════════════════════════════
 function checkReady() {
   const f = document.getElementById('inp-first').value.trim();
   const l = document.getElementById('inp-last').value.trim();
   const e = document.getElementById('inp-email').value.trim();
-  const ok = selDate && selSlot && selPay && f && l && e && e.includes('@');
-  document.getElementById('book-btn').disabled = !ok;
+  document.getElementById('book-btn').disabled = !(selDate && selSlot && selPay && f && l && e && e.includes('@'));
 }
 
 // ══════════════════════════════════════════════
-// SUBMIT BOOKING
+// SUBMIT
 // ══════════════════════════════════════════════
 async function submitBooking() {
   const btn = document.getElementById('book-btn');
   btn.disabled = true;
-  document.getElementById('book-btn-label').innerHTML = '<span class="spinner"></span> ' + t('bookBtn') + '...';
+  document.getElementById('book-btn-label').innerHTML = '<span class="spinner"></span>';
 
-  const dateStr = selDate.getFullYear() + '-' + String(selDate.getMonth()+1).padStart(2,'0') + '-' + String(selDate.getDate()).padStart(2,'0');
   const first = document.getElementById('inp-first').value.trim();
   const last = document.getElementById('inp-last').value.trim();
   const email = document.getElementById('inp-email').value.trim();
   const level = document.getElementById('inp-level').value;
+  const ds = dateStr(selDate);
+
+  // Create Google Calendar event
+  let meetLink = null, gcalId = null;
+  try {
+    const r = await fetch('/.netlify/functions/calendar', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ date: ds, time: selSlot, studentName: first+' '+last, studentEmail: email, duration: 50 })
+    });
+    if (r.ok) { const d = await r.json(); meetLink = d.meetLink; gcalId = d.eventId; }
+  } catch(e) { console.warn('GCal:', e); }
 
   // Upsert student
-  await sb.from('students').upsert({
-    email: email,
-    first_name: first,
-    last_name: last,
-    german_level: level || null,
-    language_preference: lang
-  }, { onConflict: 'email' });
+  await sb.from('students').upsert({ email, first_name: first, last_name: last, german_level: level||null, language_preference: lang }, { onConflict:'email' });
 
   // Insert booking
-  // Determine lesson type & price
-  // (Trial logic will be added when VIP system is built)
-  const lessonType = 'standard';
-  const duration = 50;
-  const price = 40.00;
-
-  // 1. Create Google Calendar event + Meet link
-  let meetLink = null;
-  let googleEventId = null;
-  try {
-    const gcalRes = await fetch('/.netlify/functions/calendar', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        date: dateStr,
-        time: selSlot,
-        studentName: first + ' ' + last,
-        studentEmail: email,
-        duration,
-        lessonType
-      })
-    });
-    if (gcalRes.ok) {
-      const gcalData = await gcalRes.json();
-      meetLink = gcalData.meetLink || null;
-      googleEventId = gcalData.eventId || null;
-    }
-  } catch (e) {
-    console.warn('Google Calendar event creation failed:', e);
-    // Non-fatal: booking still goes through
-  }
-
-  // 2. Save to Supabase
   const { error } = await sb.from('bookings').insert({
-    student_email: email,
-    student_name: first + ' ' + last,
-    booking_date: dateStr,
-    booking_time: selSlot + ':00',
-    duration_minutes: duration,
-    lesson_type: lessonType,
-    price_eur: price,
-    payment_method: selPay,
-    payment_status: 'pending',
-    status: 'confirmed',
-    google_meet_link: meetLink,
-    google_calendar_event_id: googleEventId
+    student_email: email, student_name: first+' '+last,
+    booking_date: ds, booking_time: selSlot+':00',
+    duration_minutes: 50, lesson_type: 'standard', price_eur: 40.00,
+    payment_method: selPay, payment_status: 'pending', status: 'confirmed',
+    google_meet_link: meetLink, google_calendar_event_id: gcalId
   });
 
   if (error) {
@@ -1242,58 +985,33 @@ async function submitBooking() {
     return;
   }
 
-  // 3. Save to localStorage
+  // Save localStorage
   localStorage.setItem('gsf_first', first);
   localStorage.setItem('gsf_last', last);
   localStorage.setItem('gsf_email', email);
 
-  // 4. Show success + Meet link if available
+  // Show success
   if (meetLink) {
-    document.getElementById('meet-link-wrap').classList.remove('hidden');
+    document.getElementById('meet-box').classList.remove('hidden');
     document.getElementById('meet-link').href = meetLink;
   }
-
   document.getElementById('view-book').classList.add('hidden');
   document.getElementById('view-success').classList.remove('hidden');
 }
 
-function loadSavedUser() {
-  // URL params have priority, then localStorage
-  const params = new URLSearchParams(window.location.search);
-  if (!params.get('name') && !params.get('email')) {
-    const first = localStorage.getItem('gsf_first');
-    const last  = localStorage.getItem('gsf_last');
-    const email = localStorage.getItem('gsf_email');
-    if (first) document.getElementById('inp-first').value = first;
-    if (last)  document.getElementById('inp-last').value  = last;
-    if (email) document.getElementById('inp-email').value = email;
-    if (first || last || email) checkReady();
-  }
-}
-
 function resetBooking() {
-  selDate = null; selSlot = null; selPay = null; bookedSlots = [];
-  // Refill from localStorage after reset
-  const first = localStorage.getItem('gsf_first') || '';
-  const last  = localStorage.getItem('gsf_last')  || '';
-  const email = localStorage.getItem('gsf_email') || '';
-  document.getElementById('inp-first').value = first;
-  document.getElementById('inp-last').value  = last;
-  document.getElementById('inp-email').value = email;
-  document.getElementById('inp-level').value = '';
+  selSlot = null;
   document.getElementById('sum-date').textContent = '—';
   document.getElementById('sum-time').textContent = '—';
-  document.getElementById('sum-pay').textContent = '—';
-  document.getElementById('pay-info').textContent = '';
-  document.getElementById('pay-paypal').classList.remove('selected');
-  document.getElementById('pay-bank').classList.remove('selected');
-  document.getElementById('card-time').classList.add('dimmed');
-  document.getElementById('card-details').classList.add('dimmed');
+  document.getElementById('pay-pp').classList.remove('selected');
+  document.getElementById('pay-bk').classList.remove('selected');
   document.getElementById('book-btn').disabled = true;
   document.getElementById('book-btn-label').textContent = t('bookBtn');
+  document.getElementById('meet-box').classList.add('hidden');
   document.getElementById('view-success').classList.add('hidden');
   document.getElementById('view-book').classList.remove('hidden');
-  renderCalendar();
+  updateSelInfo();
+  renderAll();
 }
 
 // ══════════════════════════════════════════════
@@ -1304,12 +1022,12 @@ function showTab(tab) {
   document.getElementById('view-dash').classList.toggle('hidden', tab !== 'dash');
   document.getElementById('view-success').classList.add('hidden');
   document.getElementById('tab-book').classList.toggle('active', tab === 'book');
-  document.getElementById('tab-dash').classList.toggle('active', tab !== 'book');
+  document.getElementById('tab-dash').classList.toggle('active', tab === 'dash');
   if (tab === 'dash') initDash();
 }
 
 // ══════════════════════════════════════════════
-// AUTH
+// AUTH & DASHBOARD
 // ══════════════════════════════════════════════
 function toggleAuth(mode) {
   document.getElementById('login-form').classList.toggle('hidden', mode !== 'login');
@@ -1320,16 +1038,10 @@ function toggleAuth(mode) {
 async function doLogin() {
   const email = document.getElementById('login-email').value.trim();
   const pw = document.getElementById('login-pw').value;
-  const btn = document.getElementById('login-btn');
-  btn.disabled = true;
   document.getElementById('lbl-login').innerHTML = '<span class="spinner"></span>';
   const { data, error } = await sb.auth.signInWithPassword({ email, password: pw });
-  btn.disabled = false;
   document.getElementById('lbl-login').textContent = t('lblLogin');
-  if (error) {
-    document.getElementById('login-alert').innerHTML = '<div class="alert alert-error">' + error.message + '</div>';
-    return;
-  }
+  if (error) { document.getElementById('login-alert').innerHTML = '<div class="alert alert-err">'+error.message+'</div>'; return; }
   currentUser = data.user;
   showDashContent();
 }
@@ -1340,21 +1052,12 @@ async function doRegister() {
   const email = document.getElementById('reg-email').value.trim();
   const pw = document.getElementById('reg-pw').value;
   const level = document.getElementById('reg-level').value;
-  const btn = document.getElementById('register-btn');
-  btn.disabled = true;
   document.getElementById('lbl-register').innerHTML = '<span class="spinner"></span>';
   const { data, error } = await sb.auth.signUp({ email, password: pw });
-  if (error) {
-    btn.disabled = false;
-    document.getElementById('lbl-register').textContent = t('lblRegister');
-    document.getElementById('login-alert').innerHTML = '<div class="alert alert-error">' + error.message + '</div>';
-    return;
-  }
-  // Save profile
-  await sb.from('students').upsert({ email, first_name: first, last_name: last, german_level: level || null, language_preference: lang }, { onConflict: 'email' });
-  currentUser = data.user;
-  btn.disabled = false;
   document.getElementById('lbl-register').textContent = t('lblRegister');
+  if (error) { document.getElementById('login-alert').innerHTML = '<div class="alert alert-err">'+error.message+'</div>'; return; }
+  await sb.from('students').upsert({ email, first_name:first, last_name:last, german_level:level||null, language_preference:lang }, { onConflict:'email' });
+  currentUser = data.user;
   showDashContent();
 }
 
@@ -1366,15 +1069,14 @@ async function doLogout() {
 }
 
 async function initDash() {
-  // If email is saved locally → show bookings directly, no login needed
   const savedEmail = localStorage.getItem('gsf_email');
-  const savedFirst = localStorage.getItem('gsf_first') || '';
   if (savedEmail) {
-    currentUser = { email: savedEmail, name: savedFirst };
+    currentUser = { email: savedEmail };
     showDashContent();
     return;
   }
-  // No saved email → show login form
+  const { data:{ session } } = await sb.auth.getSession();
+  if (session) { currentUser = session.user; showDashContent(); return; }
   document.getElementById('dash-auth').classList.remove('hidden');
   document.getElementById('dash-content').classList.add('hidden');
 }
@@ -1382,92 +1084,57 @@ async function initDash() {
 async function showDashContent() {
   document.getElementById('dash-auth').classList.add('hidden');
   document.getElementById('dash-content').classList.remove('hidden');
-  const list = document.getElementById('dash-list');
-  list.innerHTML = '<p style="color:var(--muted);font-size:14px">Loading...</p>';
-
-  // Update greeting with name if available
   const savedFirst = localStorage.getItem('gsf_first');
-  if (savedFirst) {
-    document.getElementById('dash-greeting').textContent = savedFirst + ' – ' + T[lang].dashGreeting;
-  }
+  if (savedFirst) document.getElementById('dash-greeting').textContent = savedFirst + ' · ' + t('dashGreeting');
 
-  const email = currentUser.email;
-  const { data } = await sb.from('bookings').select('*, google_meet_link, duration_minutes').eq('student_email', email).order('booking_date', { ascending: true });
-
-  if (!data || !data.length) {
-    list.innerHTML = '<p style="color:var(--muted);font-size:14px;text-align:center;padding:2rem 0">' + t('noBookings') + '</p>';
-    return;
-  }
-
+  const list = document.getElementById('dash-list');
+  list.innerHTML = '<p style="color:#5f6368;font-size:14px">Loading...</p>';
+  const { data } = await sb.from('bookings').select('*').eq('student_email', currentUser.email).order('booking_date', {ascending:true});
+  if (!data || !data.length) { list.innerHTML = '<p style="color:#5f6368;text-align:center;padding:40px 0">'+t('noBookings')+'</p>'; return; }
   const x = T[lang];
   list.innerHTML = data.map(b => {
-    const d = new Date(b.booking_date + 'T12:00:00');
-    const day = d.getDate();
-    const mon = x.months[d.getMonth()].slice(0,3).toUpperCase();
-    const time = b.booking_time.slice(0,5);
-    const statusLabel = { confirmed: x.confirmed, pending: x.pending, cancelled: x.cancelled }[b.status] || b.status;
-    const statusClass = { confirmed: 'status-confirmed', pending: 'status-pending', cancelled: 'status-cancelled' }[b.status] || '';
-    return `
-      <div class="dash-booking">
-        <div class="dash-date">
-          <div class="day">${day}</div>
-          <div class="mon">${mon}</div>
-        </div>
-        <div class="dash-info">
-          <div class="time">${time} · ${b.duration_minutes || 50} min</div>
-          <div class="status">${b.payment_method === 'paypal' ? 'PayPal' : t('lblBank')} · €${b.price_eur}</div>
-          ${b.google_meet_link ? `<a href="${b.google_meet_link}" target="_blank" style="font-size:12px; color:var(--green); font-weight:600; text-decoration:none; margin-top:4px; display:inline-block;">🎥 Join Google Meet</a>` : ''}
-        </div>
-        <span class="status-pill ${statusClass}">${statusLabel}</span>
-      </div>`;
+    const d = new Date(b.booking_date+'T12:00:00');
+    const statusClass = { confirmed:'pill-green', pending:'pill-yellow', cancelled:'pill-red' }[b.status] || '';
+    const statusLabel = { confirmed:x.confirmed, pending:x.pending, cancelled:x.cancelled }[b.status] || b.status;
+    return `<div class="dash-booking">
+      <div class="dash-date-box"><div class="dash-day">${d.getDate()}</div><div class="dash-mon">${x.months[d.getMonth()].slice(0,3)}</div></div>
+      <div class="dash-info">
+        <div class="dash-time">${b.booking_time.slice(0,5)} · ${b.duration_minutes||50} min</div>
+        <div class="dash-sub">${b.payment_method==='paypal'?'PayPal':x.lblBank||'Bank'} · €${b.price_eur}</div>
+        ${b.google_meet_link?`<a href="${b.google_meet_link}" target="_blank" class="dash-meet">🎥 Join Google Meet</a>`:''}
+      </div>
+      <span class="pill ${statusClass}">${statusLabel}</span>
+    </div>`;
   }).join('');
 }
 
 // ══════════════════════════════════════════════
-// MONTH NAV
+// MOBILE PANEL
 // ══════════════════════════════════════════════
-function prevMonth() {
-  curMonth--; if (curMonth < 0) { curMonth = 11; curYear--; }
-  renderCalendar();
-}
-function nextMonth() {
-  curMonth++; if (curMonth > 11) { curMonth = 0; curYear++; }
-  renderCalendar();
+function toggleMobilePanel() {
+  document.getElementById('side-panel').classList.toggle('show');
 }
 
 // ══════════════════════════════════════════════
-// URL PARAMS (from Flenski iFrame)
-// e.g. ?name=Anna+Müller&email=anna@example.com&lang=de
+// LOCALSTORAGE AUTO-FILL
 // ══════════════════════════════════════════════
-function applyUrlParams() {
-  const params = new URLSearchParams(window.location.search);
-  const name = params.get('name');
-  const email = params.get('email');
-  const l = params.get('lang');
-  if (l && T[l]) {
-    lang = l;
-    document.querySelectorAll('.lang-btn').forEach(b => {
-      b.classList.toggle('active', b.textContent === l.toUpperCase());
-    });
-  }
-  if (name) {
-    const parts = name.split(' ');
-    document.getElementById('inp-first').value = parts[0] || '';
-    document.getElementById('inp-last').value = parts.slice(1).join(' ') || '';
-  }
-  if (email) {
-    document.getElementById('inp-email').value = email;
-    document.getElementById('inp-email').readOnly = true;
-  }
+function loadSavedUser() {
+  const f = localStorage.getItem('gsf_first');
+  const l = localStorage.getItem('gsf_last');
+  const e = localStorage.getItem('gsf_email');
+  if (f) document.getElementById('inp-first').value = f;
+  if (l) document.getElementById('inp-last').value = l;
+  if (e) { document.getElementById('inp-email').value = e; document.getElementById('inp-email').readOnly = true; }
+  if (f||l||e) checkReady();
 }
 
 // ══════════════════════════════════════════════
 // INIT
 // ══════════════════════════════════════════════
-applyUrlParams();
-loadSavedUser();
 applyLang();
-renderCalendar();
+loadSavedUser();
+renderAll();
+loadDataForWeek();
 </script>
 </body>
 </html>
