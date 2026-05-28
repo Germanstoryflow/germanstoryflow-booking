@@ -5,7 +5,10 @@
 const { google } = require('googleapis');
 
 function getAuth() {
-  const privateKey = process.env.GOOGLE_PRIVATE_KEY.replace(/\\n/g, '\n');
+  const raw = process.env.GOOGLE_PRIVATE_KEY;
+  if (!raw) throw new Error('GOOGLE_PRIVATE_KEY is not set');
+  // Normalize newlines regardless of how Netlify stores them
+  const privateKey = raw.replace(/\\n/g, '\n').replace(/\n/g, '\n');
   return new google.auth.JWT({
     email: process.env.GOOGLE_CLIENT_EMAIL,
     key: privateKey,
@@ -140,6 +143,26 @@ exports.handler = async (event) => {
       };
     } catch (err) {
       return { statusCode: 500, headers, body: JSON.stringify({ error: err.message }) };
+    }
+  }
+
+  // ─────────────────────────────────────────
+  // DELETE: Remove a calendar event (for rescheduling)
+  // ─────────────────────────────────────────
+  if (event.httpMethod === 'DELETE') {
+    let body;
+    try { body = JSON.parse(event.body); } catch {
+      return { statusCode: 400, headers, body: JSON.stringify({ error: 'Invalid JSON' }) };
+    }
+    const { eventId } = body;
+    if (!eventId) return { statusCode: 400, headers, body: JSON.stringify({ error: 'eventId required' }) };
+    try {
+      await calendar.events.delete({ calendarId, eventId });
+      return { statusCode: 200, headers, body: JSON.stringify({ success: true }) };
+    } catch(err) {
+      // Non-fatal: event may already be deleted
+      console.warn('Delete event failed:', err.message);
+      return { statusCode: 200, headers, body: JSON.stringify({ success: true, warning: err.message }) };
     }
   }
 
