@@ -31,6 +31,8 @@ exports.handler = async (event) => {
   const auth = getAuth();
   const calendar = google.calendar({ version: 'v3', auth });
   const calendarId = process.env.GOOGLE_CALENDAR_ID;
+  const preplyCalendarId = 'eb99e1ca784fa8a96d9ff4eb56e5c3b8394f6b32eebc92454a00812f537b3b89@group.calendar.google.com';
+  const allCalendarIds = [calendarId, preplyCalendarId];
 
   // ─────────────────────────────────────────
   // GET: Return busy slots for a given date
@@ -51,11 +53,12 @@ exports.handler = async (event) => {
           timeMin,
           timeMax,
           timeZone: 'Europe/Rome',
-          items: [{ id: calendarId }],
+          items: allCalendarIds.map(id => ({ id })),
         },
       });
 
-      const busy = res.data.calendars[calendarId]?.busy || [];
+      // Merge busy times from all calendars
+      const busy = allCalendarIds.flatMap(id => res.data.calendars[id]?.busy || []);
       console.log('Google busy for', date, ':', JSON.stringify(busy));
 
       // Convert to Rome local time correctly
@@ -81,20 +84,23 @@ exports.handler = async (event) => {
       // Also fetch full event list (for admin view with titles)
       let events = [];
       try {
-        const evRes = await calendar.events.list({
-          calendarId,
-          timeMin,
-          timeMax,
-          singleEvents: true,
-          orderBy: 'startTime',
-          timeZone: 'Europe/Rome',
-        });
-        events = (evRes.data.items || []).map(ev => ({
+        // Load events from all calendars
+        const evPromises = allCalendarIds.map(cid =>
+          calendar.events.list({
+            calendarId: cid,
+            timeMin, timeMax,
+            singleEvents: true,
+            orderBy: 'startTime',
+            timeZone: 'Europe/Rome',
+          })
+        );
+        const evResults = await Promise.all(evPromises);
+        events = evResults.flatMap(evRes => (evRes.data.items || []).map(ev => ({
           title: ev.summary || '(busy)',
           startMin: toRomeMin(ev.start.dateTime || ev.start.date),
           endMin: toRomeMin(ev.end.dateTime || ev.end.date),
           meetLink: ev.hangoutLink || null
-        }));
+        })));
       } catch(e) { console.warn('Events list failed:', e.message); }
 
       return {
