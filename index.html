@@ -228,21 +228,46 @@ body{font-family:'Inter',system-ui,sans-serif;background:#f8f9fa;color:#3c4043;f
 .alert{padding:10px 14px;border-radius:8px;font-size:13px;margin-bottom:12px;}
 .alert-err{background:#fce8e6;color:#c5221f;border:1px solid #f5c6c2;}
 
-/* ── RESPONSIVE ── */
+/* ── RESPONSIVE TABLET ── */
+@media(max-width:1024px){
+  .main{grid-template-columns:1fr 280px;}
+}
+
+/* ── RESPONSIVE MOBILE ── */
 @media(max-width:768px){
-  .main{grid-template-columns:1fr;height:auto;}
+  .main{grid-template-columns:1fr;height:calc(100vh - 113px);}
   .side-panel{display:none;}
-  .side-panel.show{display:block;position:fixed;right:0;top:113px;bottom:0;width:320px;z-index:100;overflow-y:auto;box-shadow:-4px 0 20px rgba(0,0,0,0.12);}
+  .side-panel.show{
+    display:block;position:fixed;
+    left:0;right:0;bottom:0;top:auto;
+    width:100%;max-height:75vh;
+    z-index:200;overflow-y:auto;
+    border-radius:20px 20px 0 0;
+    box-shadow:0 -4px 24px rgba(0,0,0,0.18);
+  }
+  .side-inner{padding:16px;}
+  .side-mini-cal{display:none;} /* hide mini cal on mobile */
   .grid-header{grid-template-columns:40px repeat(7,1fr);}
   .time-grid{grid-template-columns:40px repeat(7,1fr);}
-  .day-name{font-size:10px;}
-  .day-num{font-size:18px;width:36px;height:36px;}
-  .week-title{font-size:15px;}
+  .day-name{font-size:9px;letter-spacing:0;}
+  .day-num{font-size:16px;width:30px;height:30px;}
+  .week-title{font-size:14px;}
+  .week-nav{padding:8px 12px;gap:8px;}
+  .today-btn{padding:6px 12px;font-size:12px;}
+  .view-toggle{display:flex;}
+  .time-label{font-size:9px;padding-right:4px;}
+  .header{padding:0 12px;}
+  .tabs{padding:0 12px;}
+  .tab{padding:12px 14px;font-size:13px;}
 }
-@media(max-width:480px){
-  /* Day view on mobile */
-  .week-mode .grid-header{grid-template-columns:40px repeat(1,1fr);}
-  .week-mode .time-grid{grid-template-columns:40px repeat(1,1fr);}
+
+/* ── RESPONSIVE SMALL MOBILE ── */
+@media(max-width:400px){
+  .day-name{font-size:8px;}
+  .day-num{font-size:13px;width:26px;height:26px;}
+  .week-title{display:none;}
+  .grid-header{grid-template-columns:36px repeat(7,1fr);}
+  .time-grid{grid-template-columns:36px repeat(7,1fr);}
 }
 
 .spinner{display:inline-block;width:14px;height:14px;border:2px solid rgba(255,255,255,0.4);border-top-color:#fff;border-radius:50%;animation:spin 0.6s linear infinite;vertical-align:middle;margin-right:6px;}
@@ -324,6 +349,16 @@ body{font-family:'Inter',system-ui,sans-serif;background:#f8f9fa;color:#3c4043;f
         <!-- Booking form -->
         <div class="booking-form">
           <div class="form-title" id="ft-title">Book a lesson</div>
+          <div id="lesson-type-wrap" style="display:flex;gap:8px;margin-bottom:14px;">
+            <button class="pay-opt selected" id="lt-standard" onclick="setLessonType('standard')" style="flex:1;">
+              <div style="font-weight:600;" id="lt-std-label">Standard</div>
+              <div style="font-size:11px;color:#70757a;" id="lt-std-sub">50 min · €40</div>
+            </button>
+            <button class="pay-opt" id="lt-trial" onclick="setLessonType('trial')" style="flex:1;display:none;">
+              <div style="font-weight:600;" id="lt-tr-label">Trial</div>
+              <div style="font-size:11px;color:#70757a;">25 min · €20</div>
+            </button>
+          </div>
           <div class="sel-info" id="sel-info"></div>
 
           <div class="form-group">
@@ -418,6 +453,10 @@ body{font-family:'Inter',system-ui,sans-serif;background:#f8f9fa;color:#3c4043;f
     <div id="meet-box" class="meet-box hidden">
       <p>🎥 <strong>Google Meet link:</strong></p>
       <a id="meet-link" href="#" target="_blank" class="book-btn" style="display:inline-flex;text-decoration:none;margin-top:8px;">Join Google Meet</a>
+    </div>
+    <div id="paypal-redirect-wrap" class="hidden" style="margin-top:16px;padding:16px;background:#e8f0fe;border-radius:12px;border:1px solid #93c5fd;">
+      <p style="font-size:13px;color:#1a73e8;margin-bottom:10px;">💳 <strong>Jetzt mit PayPal bezahlen:</strong></p>
+      <a id="paypal-redirect-link" href="#" target="_blank" class="book-btn" style="display:inline-flex;text-decoration:none;background:#0070ba;max-width:240px;margin:0 auto;">Mit PayPal bezahlen</a>
     </div>
     <button class="ghost-btn" onclick="resetBooking()" id="sl-another">Book another</button>
   </div>
@@ -518,6 +557,19 @@ let bookedSlots = {}; // { 'YYYY-MM-DD': [{time,duration},...] }
 let googleBusy = {}; // { 'YYYY-MM-DD': [{startMin,endMin},...] }
 let miniYear, miniMonth;
 let currentUser = null;
+let isAdmin = false;
+let paymentInfo = { iban: '', bankName: '', paypalMe: '' };
+
+async function loadPaymentInfo() {
+  try {
+    const r = await fetch('/.netlify/functions/payment-info');
+    if (r.ok) paymentInfo = await r.json();
+  } catch(e) { console.warn('Payment info failed:', e); }
+}
+let isVIP = false;
+let vipPrice = 40;
+let hasUsedTrial = false;
+let selectedLessonType = 'standard'; // 'standard' | 'trial'
 
 const now = new Date();
 miniYear = now.getFullYear();
@@ -700,17 +752,47 @@ function renderTimeGrid() {
 
       if (isWorking) {
         const ds = dateStr(d);
-        // Draw booked events as full 60-min blocks (like Google Calendar)
+        // Draw selected slot: green lesson block + grey buffer block
+        if (selDate && d.toDateString() === selDate.toDateString() && selSlot) {
+          const sMin = timeToMin(selSlot);
+          if (sMin >= h*60 && sMin < (h+1)*60) {
+            const topPx = sMin - h*60;
+            // Green lesson block (50 min)
+            const lessonEl = document.createElement('div');
+            lessonEl.style.cssText = `position:absolute;left:2px;right:2px;top:${topPx}px;height:50px;border-radius:4px 4px 0 0;background:#1D9E75;border-left:3px solid #0F6E56;z-index:7;padding:2px 4px;font-size:10px;color:#fff;overflow:hidden;`;
+            const endMin2 = timeToMin(selSlot) + 50;
+            lessonEl.textContent = selSlot + ' – ' + minToTime(endMin2) + ' Uhr';
+            col.appendChild(lessonEl);
+          }
+          // Grey buffer block (10 min) – may be in next hour row
+          const bufMin = timeToMin(selSlot) + 50;
+          if (bufMin >= h*60 && bufMin < (h+1)*60) {
+            const bufTop = bufMin - h*60;
+            const bufEl = document.createElement('div');
+            bufEl.style.cssText = `position:absolute;left:2px;right:2px;top:${bufTop}px;height:10px;border-radius:0 0 4px 4px;background:#b2dfdb;border-left:3px solid #0F6E56;z-index:7;`;
+            col.appendChild(bufEl);
+          }
+        }
+
+        // Draw booked events as full blocks (like Google Calendar)
         const allBooked = [...(bookedSlots[ds]||[]), ...(googleBusy[ds]||[]).map(g=>({time:minToTime(g.startMin),duration:g.endMin-g.startMin,isGoogle:true}))];
         allBooked.forEach(b => {
           const bMin = timeToMin(b.time);
-          if (bMin < h*60 || bMin >= (h+1)*60) return; // only render in correct hour row
-          const topPx = (bMin - h*60);
-          const heightPx = (b.duration||50) + 10; // lesson + buffer
+          if (bMin < h*60 || bMin >= (h+1)*60) return;
+          const topPx = bMin - h*60;
+          const lessonH = b.duration || 50;
+          // Lesson block
           const ev = document.createElement('div');
-          ev.style.cssText = `position:absolute;left:2px;right:2px;top:${topPx}px;height:${heightPx}px;border-radius:4px;background:${b.isGoogle?'#e8d5f5':'#dadce0'};border-left:3px solid ${b.isGoogle?'#9334e6':'#70757a'};z-index:6;padding:2px 4px;font-size:10px;color:${b.isGoogle?'#6b1fa6':'#3c4043'};overflow:hidden;cursor:not-allowed;`;
+          ev.style.cssText = `position:absolute;left:2px;right:2px;top:${topPx}px;height:${lessonH}px;border-radius:4px 4px 0 0;background:${b.isGoogle?'#e8d5f5':'#dadce0'};border-left:3px solid ${b.isGoogle?'#9334e6':'#70757a'};z-index:6;padding:2px 4px;font-size:10px;color:${b.isGoogle?'#6b1fa6':'#3c4043'};overflow:hidden;cursor:not-allowed;`;
           ev.textContent = b.isGoogle ? '(busy)' : '(booked)';
           col.appendChild(ev);
+          // Buffer block (10 min)
+          const bufMin = bMin + lessonH;
+          if (bufMin >= h*60 && bufMin < (h+1)*60) {
+            const bufEl = document.createElement('div');
+            bufEl.style.cssText = `position:absolute;left:2px;right:2px;top:${bufMin-h*60}px;height:10px;border-radius:0 0 4px 4px;background:${b.isGoogle?'#f3e8fd':'#f1f3f4'};border-left:3px solid ${b.isGoogle?'#9334e6':'#70757a'};z-index:6;cursor:not-allowed;`;
+            col.appendChild(bufEl);
+          }
         });
         for (let q = 0; q < 4; q++) {
           const slotMin = h * 60 + q * 15;
@@ -781,14 +863,12 @@ function selectSlot(d, time) {
   selDate = d;
   selSlot = time;
   document.getElementById('sum-date').textContent = d.getDate() + '.' + (d.getMonth()+1) + '.' + d.getFullYear();
-  document.getElementById('sum-time').textContent = time;
+  const endTime = minToTime(timeToMin(time) + 50);
+  document.getElementById('sum-time').textContent = time + ' – ' + endTime + ' Uhr';
   renderAll();
   updateSelInfo();
   checkReady();
-  // On mobile show panel
-  if (window.innerWidth <= 768) {
-    document.getElementById('side-panel').classList.add('show');
-  }
+  if (window.innerWidth <= 768) document.getElementById('side-panel').classList.add('show');
 }
 
 function updateSelInfo() {
@@ -796,7 +876,8 @@ function updateSelInfo() {
   if (selDate && selSlot) {
     info.style.display = 'block';
     const x = T[lang];
-    info.textContent = '📅 ' + x.days[selDate.getDay()] + ' ' + selDate.getDate() + ' ' + x.months[selDate.getMonth()] + ' · ' + selSlot + ' – 50 min';
+    const endT = minToTime(timeToMin(selSlot) + 50);
+    info.textContent = '📅 ' + x.days[selDate.getDay()] + ' ' + selDate.getDate() + ' ' + x.months[selDate.getMonth()] + ' · ' + selSlot + ' – ' + endT + ' Uhr';
   } else {
     info.style.display = 'none';
   }
@@ -922,13 +1003,37 @@ async function loadDataForWeek() {
 // ══════════════════════════════════════════════
 // PAYMENT & FORM
 // ══════════════════════════════════════════════
+function setLessonType(type) {
+  selectedLessonType = type;
+  document.getElementById('lt-standard').classList.toggle('selected', type === 'standard');
+  document.getElementById('lt-trial').classList.toggle('selected', type === 'trial');
+  // Update duration display
+  const dur = type === 'trial' ? 25 : 50;
+  const price = type === 'trial' ? 20 : (isVIP ? vipPrice : 40);
+  document.querySelector('.sum-row span:last-child') && null;
+  document.getElementById('sl-lesson').parentElement.querySelector('span:last-child').textContent = dur + ' min';
+  document.getElementById('book-btn-label').textContent = t('bookBtn');
+  // Update price
+  document.querySelector('.sum-row.total span:last-child') && (document.querySelectorAll('.sum-row.total span')[1].textContent = '€' + price);
+  updateSelInfo();
+  checkReady();
+}
+
 function setPay(p) {
   selPay = p;
   document.getElementById('pay-pp').classList.toggle('selected', p === 'paypal');
   document.getElementById('pay-bk').classList.toggle('selected', p === 'bank');
-  if (p === 'bank') {
-    document.getElementById('sel-info').textContent = t('bankInfo');
-    document.getElementById('sel-info').style.display = 'block';
+  const info = document.getElementById('sel-info');
+  if (p === 'bank' && paymentInfo.iban) {
+    info.style.display = 'block';
+    info.style.background = '#fff3cd';
+    info.style.color = '#856404';
+    info.innerHTML = `🏦 <strong>${paymentInfo.bankName}</strong><br>IBAN: <strong>${paymentInfo.iban}</strong><br><small>Verwendungszweck: dein Name + Datum</small>`;
+  } else if (p === 'paypal' && paymentInfo.paypalMe) {
+    info.style.display = 'block';
+    info.style.background = '#e8f0fe';
+    info.style.color = '#1a73e8';
+    info.innerHTML = `💳 Du wirst nach der Buchung zum PayPal-Link weitergeleitet.`;
   } else {
     updateSelInfo();
   }
@@ -956,24 +1061,33 @@ async function submitBooking() {
   const level = document.getElementById('inp-level').value;
   const ds = dateStr(selDate);
 
+  // Determine lesson type, duration, price
+  const isTrial = selectedLessonType === 'trial';
+  const duration = isTrial ? 25 : 50;
+  const price = isTrial ? 20 : (isVIP ? vipPrice : 40);
+
   // Create Google Calendar event
   let meetLink = null, gcalId = null;
   try {
     const r = await fetch('/.netlify/functions/calendar', {
       method:'POST', headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({ date: ds, time: selSlot, studentName: first+' '+last, studentEmail: email, duration: 50 })
+      body: JSON.stringify({ date: ds, time: selSlot, studentName: first+' '+last, studentEmail: email, duration, lessonType: selectedLessonType })
     });
     if (r.ok) { const d = await r.json(); meetLink = d.meetLink; gcalId = d.eventId; }
   } catch(e) { console.warn('GCal:', e); }
 
-  // Upsert student
-  await sb.from('students').upsert({ email, first_name: first, last_name: last, german_level: level||null, language_preference: lang }, { onConflict:'email' });
+  // Upsert student + mark trial as used if applicable
+  await sb.from('students').upsert({
+    email, first_name: first, last_name: last,
+    german_level: level||null, language_preference: lang,
+    ...(isTrial ? { has_used_trial: true } : {})
+  }, { onConflict:'email' });
 
   // Insert booking
   const { error } = await sb.from('bookings').insert({
     student_email: email, student_name: first+' '+last,
     booking_date: ds, booking_time: selSlot+':00',
-    duration_minutes: 50, lesson_type: 'standard', price_eur: 40.00,
+    duration_minutes: duration, lesson_type: selectedLessonType, price_eur: price,
     payment_method: selPay, payment_status: 'pending', status: 'confirmed',
     google_meet_link: meetLink, google_calendar_event_id: gcalId
   });
@@ -990,10 +1104,29 @@ async function submitBooking() {
   localStorage.setItem('gsf_last', last);
   localStorage.setItem('gsf_email', email);
 
+  // Send confirmation email
+  try {
+    await fetch('/.netlify/functions/notify', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({
+        studentName: first+' '+last, studentEmail: email,
+        date: ds, time: selSlot, duration, price, lessonType: selectedLessonType,
+        meetLink, paymentMethod: selPay, lang,
+        iban: paymentInfo.iban, bankName: paymentInfo.bankName, paypalMe: paymentInfo.paypalMe
+      })
+    });
+  } catch(e) { console.warn('Email notification failed:', e); }
+
   // Show success
   if (meetLink) {
     document.getElementById('meet-box').classList.remove('hidden');
     document.getElementById('meet-link').href = meetLink;
+  }
+  // PayPal redirect
+  if (selPay === 'paypal' && paymentInfo.paypalMe) {
+    const paypalUrl = `https://${paymentInfo.paypalMe}/${price}EUR`;
+    document.getElementById('paypal-redirect-wrap').classList.remove('hidden');
+    document.getElementById('paypal-redirect-link').href = paypalUrl;
   }
   document.getElementById('view-book').classList.add('hidden');
   document.getElementById('view-success').classList.remove('hidden');
@@ -1069,14 +1202,17 @@ async function doLogout() {
 }
 
 async function initDash() {
+  // 1. LocalStorage (no login needed for students)
   const savedEmail = localStorage.getItem('gsf_email');
   if (savedEmail) {
     currentUser = { email: savedEmail };
     showDashContent();
     return;
   }
+  // 2. Supabase session (for admin or users who logged in)
   const { data:{ session } } = await sb.auth.getSession();
   if (session) { currentUser = session.user; showDashContent(); return; }
+  // 3. No identity found → show login (first-time visitors)
   document.getElementById('dash-auth').classList.remove('hidden');
   document.getElementById('dash-content').classList.add('hidden');
 }
@@ -1085,23 +1221,62 @@ async function showDashContent() {
   document.getElementById('dash-auth').classList.add('hidden');
   document.getElementById('dash-content').classList.remove('hidden');
   const savedFirst = localStorage.getItem('gsf_first');
-  if (savedFirst) document.getElementById('dash-greeting').textContent = savedFirst + ' · ' + t('dashGreeting');
+
+  // Check admin/VIP/trial flags
+  const { data: studentData } = await sb.from('students').select('is_admin, is_vip, vip_price_eur, has_used_trial, first_name').eq('email', currentUser.email).single();
+  isAdmin = studentData?.is_admin || false;
+  isVIP = studentData?.is_vip || false;
+  vipPrice = studentData?.vip_price_eur || 40;
+  hasUsedTrial = studentData?.has_used_trial || false;
+  const firstName = savedFirst || studentData?.first_name || '';
+  if (firstName) document.getElementById('dash-greeting').textContent = firstName + (isAdmin ? ' 👩‍🏫 ' : ' · ') + t('dashGreeting');
+
+  // Show/hide trial lesson option
+  const trialBtn = document.getElementById('lt-trial');
+  if (trialBtn) {
+    if (!isVIP && !hasUsedTrial) {
+      trialBtn.style.display = 'flex';
+    } else {
+      trialBtn.style.display = 'none';
+    }
+  }
+  // Update standard price for VIP
+  if (isVIP) {
+    document.getElementById('lt-std-sub').textContent = '50 min · €' + vipPrice;
+    document.querySelectorAll('.sum-row.total span')[1] && (document.querySelectorAll('.sum-row.total span')[1].textContent = '€' + vipPrice);
+  }
 
   const list = document.getElementById('dash-list');
   list.innerHTML = '<p style="color:#5f6368;font-size:14px">Loading...</p>';
-  const { data } = await sb.from('bookings').select('*').eq('student_email', currentUser.email).order('booking_date', {ascending:true});
+  // Admin sees ALL bookings, student sees only own
+  const query = isAdmin
+    ? sb.from('bookings').select('*').order('booking_date', {ascending:true})
+    : sb.from('bookings').select('*').eq('student_email', currentUser.email).order('booking_date', {ascending:true});
+  const { data } = await query;
   if (!data || !data.length) { list.innerHTML = '<p style="color:#5f6368;text-align:center;padding:40px 0">'+t('noBookings')+'</p>'; return; }
   const x = T[lang];
   list.innerHTML = data.map(b => {
     const d = new Date(b.booking_date+'T12:00:00');
     const statusClass = { confirmed:'pill-green', pending:'pill-yellow', cancelled:'pill-red' }[b.status] || '';
     const statusLabel = { confirmed:x.confirmed, pending:x.pending, cancelled:x.cancelled }[b.status] || b.status;
+    // Can reschedule? Admin always, student only if >12h away
+    const bookingDT = new Date(b.booking_date + 'T' + b.booking_time);
+    const hoursUntil = (bookingDT - new Date()) / 36e5;
+    const canReschedule = isAdmin || hoursUntil > 12;
+    const rescheduleBtn = canReschedule && b.status === 'confirmed'
+      ? `<button onclick="startReschedule('${b.id}','${b.booking_date}','${b.booking_time.slice(0,5)}','${b.student_email}','${b.student_name}')" style="margin-top:6px;padding:4px 10px;border-radius:6px;border:1px solid #1D9E75;background:transparent;color:#1D9E75;font-size:11px;font-weight:600;cursor:pointer;font-family:inherit;">📅 Verschieben</button>`
+      : '';
+    // Cancel button: student >12h, admin always
+    const cancelBtn = canReschedule && b.status === 'confirmed'
+      ? `<button onclick="cancelBooking('${b.id}','${b.google_calendar_event_id||''}')" style="margin-top:6px;margin-left:6px;padding:4px 10px;border-radius:6px;border:1px solid #c5221f;background:transparent;color:#c5221f;font-size:11px;font-weight:600;cursor:pointer;font-family:inherit;">✕ Stornieren</button>`
+      : '';
     return `<div class="dash-booking">
       <div class="dash-date-box"><div class="dash-day">${d.getDate()}</div><div class="dash-mon">${x.months[d.getMonth()].slice(0,3)}</div></div>
       <div class="dash-info">
-        <div class="dash-time">${b.booking_time.slice(0,5)} · ${b.duration_minutes||50} min</div>
-        <div class="dash-sub">${b.payment_method==='paypal'?'PayPal':x.lblBank||'Bank'} · €${b.price_eur}</div>
+        <div class="dash-time">${b.booking_time.slice(0,5)} – ${minToTime(timeToMin(b.booking_time.slice(0,5))+50)} Uhr · ${b.duration_minutes||50} min</div>
+        <div class="dash-sub">${isAdmin ? b.student_name + ' · ' : ''}${b.payment_method==='paypal'?'PayPal':'Bank'} · €${b.price_eur}</div>
         ${b.google_meet_link?`<a href="${b.google_meet_link}" target="_blank" class="dash-meet">🎥 Join Google Meet</a>`:''}
+        ${rescheduleBtn}${cancelBtn}
       </div>
       <span class="pill ${statusClass}">${statusLabel}</span>
     </div>`;
@@ -1129,12 +1304,148 @@ function loadSavedUser() {
 }
 
 // ══════════════════════════════════════════════
+// CANCEL BOOKING
+// ══════════════════════════════════════════════
+async function cancelBooking(bookingId, gcalEventId) {
+  if (!confirm('Termin wirklich stornieren?')) return;
+  // Delete Google Calendar event
+  if (gcalEventId) {
+    try {
+      await fetch('/.netlify/functions/calendar', {
+        method:'DELETE', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({ eventId: gcalEventId })
+      });
+    } catch(e) { console.warn('GCal delete:', e); }
+  }
+  // Update status in Supabase
+  const { error } = await sb.from('bookings').update({ status: 'cancelled' }).eq('id', bookingId);
+  if (error) { alert('Fehler: ' + error.message); return; }
+  // Reload dashboard
+  showDashContent();
+  loadDataForWeek();
+}
+
+// ══════════════════════════════════════════════
+// RESCHEDULE
+// ══════════════════════════════════════════════
+let rescheduleBookingId = null;
+let rescheduleStudentEmail = null;
+let rescheduleStudentName = null;
+
+function startReschedule(id, oldDate, oldTime, email, name) {
+  rescheduleBookingId = id;
+  rescheduleStudentEmail = email;
+  rescheduleStudentName = name;
+  // Switch to booking tab, pre-select the slot
+  showTab('book');
+  // Show banner
+  const banner = document.createElement('div');
+  banner.id = 'reschedule-banner';
+  banner.style.cssText = 'background:#fff3cd;border:1px solid #ffc107;border-radius:8px;padding:10px 14px;margin:10px 20px;font-size:13px;color:#856404;display:flex;justify-content:space-between;align-items:center;';
+  banner.innerHTML = `<span>📅 Termin verschieben: <strong>${oldDate} ${oldTime} Uhr</strong> → neuen Slot wählen</span><button onclick="cancelReschedule()" style="border:none;background:transparent;cursor:pointer;font-size:16px;color:#856404;">✕</button>`;
+  const existing = document.getElementById('reschedule-banner');
+  if (existing) existing.remove();
+  document.querySelector('.week-nav').insertAdjacentElement('afterend', banner);
+  // Change book button to confirm reschedule
+  document.getElementById('book-btn-label').textContent = 'Neuen Termin bestätigen';
+  document.getElementById('book-btn').onclick = confirmReschedule;
+}
+
+function cancelReschedule() {
+  rescheduleBookingId = null;
+  rescheduleStudentEmail = null;
+  rescheduleStudentName = null;
+  const b = document.getElementById('reschedule-banner');
+  if (b) b.remove();
+  document.getElementById('book-btn-label').textContent = t('bookBtn');
+  document.getElementById('book-btn').onclick = submitBooking;
+}
+
+async function confirmReschedule() {
+  if (!selDate || !selSlot || !rescheduleBookingId) return;
+  const btn = document.getElementById('book-btn');
+  btn.disabled = true;
+  document.getElementById('book-btn-label').innerHTML = '<span class="spinner"></span>';
+
+  const ds = dateStr(selDate);
+
+  // Create new Google Calendar event
+  let meetLink = null, gcalId = null;
+  try {
+    const r = await fetch('/.netlify/functions/calendar', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ date: ds, time: selSlot, studentName: rescheduleStudentName, studentEmail: rescheduleStudentEmail, duration: 50 })
+    });
+    if (r.ok) { const d = await r.json(); meetLink = d.meetLink; gcalId = d.eventId; }
+  } catch(e) { console.warn('GCal:', e); }
+
+  // Delete old Google Calendar event
+  try {
+    const { data: oldBooking } = await sb.from('bookings').select('google_calendar_event_id').eq('id', rescheduleBookingId).single();
+    if (oldBooking?.google_calendar_event_id) {
+      await fetch('/.netlify/functions/calendar', {
+        method:'DELETE', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({ eventId: oldBooking.google_calendar_event_id })
+      });
+    }
+  } catch(e) { console.warn('Old event delete failed:', e); }
+
+  // Update booking in Supabase
+  const { error } = await sb.from('bookings').update({
+    booking_date: ds,
+    booking_time: selSlot + ':00',
+    google_meet_link: meetLink,
+    google_calendar_event_id: gcalId,
+    rescheduled_from_date: ds,
+    rescheduled_from_time: selSlot + ':00'
+  }).eq('id', rescheduleBookingId);
+
+  if (error) { alert('Fehler: ' + error.message); btn.disabled = false; return; }
+
+  cancelReschedule();
+  document.getElementById('book-btn').onclick = submitBooking;
+  showTab('dash');
+}
+
+// ══════════════════════════════════════════════
+// URL PARAMS (Flenski iframe: ?name=Anna+Müller&email=anna@x.com&lang=de)
+// ══════════════════════════════════════════════
+function applyUrlParams() {
+  const p = new URLSearchParams(window.location.search);
+  const name = p.get('name');
+  const email = p.get('email');
+  const l = p.get('lang');
+  if (l && T[l]) {
+    lang = l;
+    document.querySelectorAll('.lang-btn').forEach(b => b.classList.toggle('active', b.textContent === l.toUpperCase()));
+  }
+  if (name) {
+    const parts = name.split(' ');
+    document.getElementById('inp-first').value = parts[0] || '';
+    document.getElementById('inp-last').value = parts.slice(1).join(' ') || '';
+  }
+  if (email) {
+    document.getElementById('inp-email').value = email;
+    document.getElementById('inp-email').readOnly = true;
+    // Save to localStorage immediately
+    localStorage.setItem('gsf_email', email);
+    if (name) {
+      const parts = name.split(' ');
+      localStorage.setItem('gsf_first', parts[0] || '');
+      localStorage.setItem('gsf_last', parts.slice(1).join(' ') || '');
+    }
+  }
+}
+
+// ══════════════════════════════════════════════
 // INIT
 // ══════════════════════════════════════════════
+applyUrlParams();
 applyLang();
 loadSavedUser();
 renderAll();
 loadDataForWeek();
+loadPaymentInfo();
 </script>
 </body>
 </html>
