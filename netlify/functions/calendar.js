@@ -41,6 +41,7 @@ exports.handler = async (event) => {
       return { statusCode: 400, headers, body: JSON.stringify({ error: 'date required' }) };
     }
 
+    // Europe/Rome Sommerzeit = UTC+2
     const timeMin = new Date(date + 'T00:00:00+02:00').toISOString();
     const timeMax = new Date(date + 'T23:59:59+02:00').toISOString();
 
@@ -55,20 +56,51 @@ exports.handler = async (event) => {
       });
 
       const busy = res.data.calendars[calendarId]?.busy || [];
+      console.log('Google busy for', date, ':', JSON.stringify(busy));
 
-      // Convert busy periods to blocked time ranges in minutes
-      const blockedRanges = busy.map(b => {
-        const start = new Date(b.start);
-        const end = new Date(b.end);
-        const startMin = start.getHours() * 60 + start.getMinutes();
-        const endMin = end.getHours() * 60 + end.getMinutes();
-        return { startMin, endMin };
-      });
+      // Convert to Rome local time correctly
+      const toRomeMin = (isoStr) => {
+        const d = new Date(isoStr);
+        const romeStr = d.toLocaleString('en-GB', {
+          timeZone: 'Europe/Rome',
+          hour: '2-digit',
+          minute: '2-digit',
+          hour12: false
+        });
+        // Handle midnight edge case "24:00"
+        const parts = romeStr.replace('24:','00:').split(':').map(Number);
+        return parts[0] * 60 + parts[1];
+      };
+
+      const blockedRanges = busy.map(b => ({
+        startMin: toRomeMin(b.start),
+        endMin: toRomeMin(b.end),
+        title: b.summary || 'busy'
+      }));
+
+      // Also fetch full event list (for admin view with titles)
+      let events = [];
+      try {
+        const evRes = await calendar.events.list({
+          calendarId,
+          timeMin,
+          timeMax,
+          singleEvents: true,
+          orderBy: 'startTime',
+          timeZone: 'Europe/Rome',
+        });
+        events = (evRes.data.items || []).map(ev => ({
+          title: ev.summary || '(busy)',
+          startMin: toRomeMin(ev.start.dateTime || ev.start.date),
+          endMin: toRomeMin(ev.end.dateTime || ev.end.date),
+          meetLink: ev.hangoutLink || null
+        }));
+      } catch(e) { console.warn('Events list failed:', e.message); }
 
       return {
         statusCode: 200,
         headers,
-        body: JSON.stringify({ date, blockedRanges }),
+        body: JSON.stringify({ date, blockedRanges, events }),
       };
     } catch (err) {
       return { statusCode: 500, headers, body: JSON.stringify({ error: err.message }) };
