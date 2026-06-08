@@ -82,11 +82,11 @@ body{font-family:'Inter',system-ui,sans-serif;background:#f8f9fa;color:#3c4043;f
 .day-num.off-day:hover{background:transparent;}
 
 /* ── TIME GRID ── */
-.time-grid{display:grid;grid-template-columns:52px repeat(7,1fr);position:relative;}
+.time-grid{display:grid;grid-template-columns:58px repeat(7,1fr);position:relative;}
 .time-label{
-  font-size:10px;color:#70757a;text-align:right;
-  padding-right:8px;height:60px;display:flex;align-items:flex-start;
-  padding-top:2px;user-select:none;
+  font-size:11px;color:#70757a;text-align:right;
+  padding-right:6px;height:60px;display:flex;align-items:flex-start;
+  padding-top:2px;user-select:none;width:52px;min-width:52px;
 }
 .time-col{border-left:1px solid #dadce0;position:relative;height:60px;}
 .time-col.off{background:#f8f9fa;}
@@ -384,8 +384,7 @@ body{font-family:'Inter',system-ui,sans-serif;background:#f8f9fa;color:#3c4043;f
           <div class="form-group">
             <label id="lbl-pay">Payment</label>
             <div class="pay-row">
-              <button class="pay-opt" id="pay-pp" onclick="setPay('paypal')">🅿 PayPal</button>
-              <button class="pay-opt" id="pay-bk" onclick="setPay('bank')">🏦 <span id="lbl-bank">Bank</span></button>
+              <button class="pay-opt selected" id="pay-pp" onclick="setPay('paypal')" style="flex:1;">🅿 PayPal</button>
             </div>
           </div>
 
@@ -553,8 +552,9 @@ let lang = 'en';
 let viewMode = 'week'; // 'week' | 'day'
 let weekStart = getWeekStart(new Date());
 let selDate = null, selSlot = null, selPay = null;
-let bookedSlots = {}; // { 'YYYY-MM-DD': [{time,duration},...] }
-let googleBusy = {}; // { 'YYYY-MM-DD': [{startMin,endMin},...] }
+let bookedSlots = {};
+let googleBusy = {};
+let googleEvents = {}; // full events with titles for admin
 let miniYear, miniMonth;
 let currentUser = null;
 let isAdmin = false;
@@ -622,18 +622,22 @@ function timeToMin(t) {
 }
 
 function isSlotBlocked(slotMin, ds) {
-  const sEnd = slotMin + 50 + 10; // lesson + buffer
+  const sEnd = slotMin + 50; // lesson end (no buffer added to new slot for overlap check)
+  const sEndWithBuf = slotMin + 60; // lesson + buffer
+
   // Check supabase bookings
   const sb_slots = bookedSlots[ds] || [];
   for (const b of sb_slots) {
     const bStart = timeToMin(b.time);
-    const bEnd = bStart + (b.duration||50) + 10;
-    if (slotMin < bEnd && sEnd > bStart) return 'booked';
+    const bEnd = bStart + (b.duration||50) + 10; // existing booking + its buffer
+    // New slot overlaps if it starts before existing ends AND ends after existing starts
+    if (slotMin < bEnd && sEndWithBuf > bStart) return 'booked';
   }
-  // Check Google Calendar
+  // Check Google Calendar - slot blocked if it overlaps with Google event
   const g_busy = googleBusy[ds] || [];
   for (const g of g_busy) {
-    if (slotMin < g.endMin && sEnd > g.startMin) return 'google';
+    const gEnd = g.endMin + 10; // Google event + 10min buffer after
+    if (slotMin < gEnd && sEnd > g.startMin) return 'google';
   }
   return false;
 }
@@ -704,7 +708,7 @@ function renderWeekHeader() {
   const header = document.getElementById('grid-header');
   const x = T[lang];
   const cols = viewMode === 'day' ? 1 : 7;
-  header.style.gridTemplateColumns = '52px repeat(' + cols + ',1fr)';
+  header.style.gridTemplateColumns = '58px repeat(' + cols + ',1fr)';
   header.innerHTML = '<div style="border-left:none;padding:8px 4px;"></div>';
   const today = new Date(); today.setHours(0,0,0,0);
 
@@ -729,7 +733,7 @@ function renderWeekHeader() {
 function renderTimeGrid() {
   const grid = document.getElementById('time-grid');
   const cols = viewMode === 'day' ? 1 : 7;
-  grid.style.gridTemplateColumns = '52px repeat(' + cols + ',1fr)';
+  grid.style.gridTemplateColumns = '58px repeat(' + cols + ',1fr)';
   grid.innerHTML = '';
   const today = new Date(); today.setHours(0,0,0,0);
 
@@ -774,23 +778,52 @@ function renderTimeGrid() {
           }
         }
 
-        // Draw booked events as full blocks (like Google Calendar)
-        const allBooked = [...(bookedSlots[ds]||[]), ...(googleBusy[ds]||[]).map(g=>({time:minToTime(g.startMin),duration:g.endMin-g.startMin,isGoogle:true}))];
+        // Draw Google Calendar events
+        const gEvents = (googleEvents[ds]||[]);
+        // For students use blockedRanges, for admin use full events with titles
+        // Always use blockedRanges for rendering (grey for everyone)
+        // Admin additionally sees titles via googleEvents
+        const gBlocks = (googleBusy[ds]||[]).map(g => ({
+          startMin: g.startMin,
+          endMin: g.endMin,
+          title: isAdmin ? (googleEvents[ds]||[]).find(e => e.startMin === g.startMin)?.title || 'busy' : ''
+        }));
+        gBlocks.forEach(g => {
+          const gMin = g.startMin;
+          const gEnd = g.endMin;
+          if (gMin === undefined || gMin < h*60 || gMin >= (h+1)*60) return;
+          const topPx = gMin - h*60;
+          const heightPx = Math.max(15, gEnd - gMin);
+          const ev = document.createElement('div');
+          // Always grey – admin sees title, student sees nothing
+          ev.style.cssText = `position:absolute;left:2px;right:2px;top:${topPx}px;height:${heightPx}px;border-radius:4px;background:#f1f3f4;border-left:3px solid #dadce0;z-index:6;padding:2px 4px;font-size:10px;color:#5f6368;overflow:hidden;cursor:not-allowed;white-space:nowrap;text-overflow:ellipsis;`;
+          ev.textContent = g.title; // empty for students, name for admin
+          col.appendChild(ev);
+          // 10 min buffer after
+          const gBufMin = gEnd;
+          if (gBufMin >= h*60 && gBufMin < (h+1)*60) {
+            const bufEl = document.createElement('div');
+            bufEl.style.cssText = `position:absolute;left:2px;right:2px;top:${gBufMin-h*60}px;height:10px;border-radius:0 0 4px 4px;background:#f1f3f4;z-index:6;cursor:not-allowed;`;
+            col.appendChild(bufEl);
+          }
+        });
+
+        // Draw Supabase bookings
+        const allBooked = (bookedSlots[ds]||[]);
         allBooked.forEach(b => {
           const bMin = timeToMin(b.time);
           if (bMin < h*60 || bMin >= (h+1)*60) return;
           const topPx = bMin - h*60;
           const lessonH = b.duration || 50;
-          // Lesson block
           const ev = document.createElement('div');
-          ev.style.cssText = `position:absolute;left:2px;right:2px;top:${topPx}px;height:${lessonH}px;border-radius:4px 4px 0 0;background:${b.isGoogle?'#e8d5f5':'#dadce0'};border-left:3px solid ${b.isGoogle?'#9334e6':'#70757a'};z-index:6;padding:2px 4px;font-size:10px;color:${b.isGoogle?'#6b1fa6':'#3c4043'};overflow:hidden;cursor:not-allowed;`;
-          ev.textContent = b.isGoogle ? '(busy)' : '(booked)';
+          ev.style.cssText = `position:absolute;left:2px;right:2px;top:${topPx}px;height:${lessonH}px;border-radius:4px 4px 0 0;background:${isAdmin?'#d2e3fc':'#dadce0'};border-left:3px solid ${isAdmin?'#1a73e8':'#70757a'};z-index:6;padding:2px 4px;font-size:10px;color:${isAdmin?'#1a73e8':'transparent'};overflow:hidden;cursor:not-allowed;white-space:nowrap;text-overflow:ellipsis;`;
+          ev.textContent = isAdmin ? (b.studentName||'(booked)') : '';
           col.appendChild(ev);
-          // Buffer block (10 min)
+          // Buffer block after lesson (10 min)
           const bufMin = bMin + lessonH;
           if (bufMin >= h*60 && bufMin < (h+1)*60) {
             const bufEl = document.createElement('div');
-            bufEl.style.cssText = `position:absolute;left:2px;right:2px;top:${bufMin-h*60}px;height:10px;border-radius:0 0 4px 4px;background:${b.isGoogle?'#f3e8fd':'#f1f3f4'};border-left:3px solid ${b.isGoogle?'#9334e6':'#70757a'};z-index:6;cursor:not-allowed;`;
+            bufEl.style.cssText = `position:absolute;left:2px;right:2px;top:${bufMin-h*60}px;height:10px;border-radius:0 0 4px 4px;background:#f1f3f4;border-left:3px solid ${isAdmin?'#1a73e8':'#dadce0'};z-index:6;cursor:not-allowed;`;
             col.appendChild(bufEl);
           }
         });
@@ -973,7 +1006,7 @@ async function loadDataForWeek() {
 
   // Load Supabase bookings
   const { data } = await sb.from('bookings')
-    .select('booking_date, booking_time, duration_minutes')
+    .select('booking_date, booking_time, duration_minutes, student_name')
     .in('booking_date', dates)
     .eq('status', 'confirmed');
 
@@ -981,18 +1014,20 @@ async function loadDataForWeek() {
   if (data) {
     data.forEach(r => {
       if (!bookedSlots[r.booking_date]) bookedSlots[r.booking_date] = [];
-      bookedSlots[r.booking_date].push({ time: r.booking_time.slice(0,5), duration: r.duration_minutes || 50 });
+      bookedSlots[r.booking_date].push({ time: r.booking_time.slice(0,5), duration: r.duration_minutes || 50, studentName: r.student_name });
     });
   }
 
-  // Load Google Calendar busy times
+  // Load Google Calendar busy times + events
   googleBusy = {};
+  googleEvents = {};
   try {
     for (const ds of dates) {
       const res = await fetch(`/.netlify/functions/calendar?date=${ds}`);
       if (res.ok) {
         const json = await res.json();
         if (json.blockedRanges) googleBusy[ds] = json.blockedRanges;
+        if (json.events) googleEvents[ds] = json.events;
       }
     }
   } catch(e) { console.warn('Google Calendar fetch failed:', e); }
@@ -1083,12 +1118,17 @@ async function submitBooking() {
     ...(isTrial ? { has_used_trial: true } : {})
   }, { onConflict:'email' });
 
+  // Bank transfer = pending until manually confirmed by teacher
+  // PayPal = confirmed immediately after payment
+  const bookingStatus = 'pending'; // confirmed after PayPal payment
+
   // Insert booking
   const { error } = await sb.from('bookings').insert({
     student_email: email, student_name: first+' '+last,
     booking_date: ds, booking_time: selSlot+':00',
     duration_minutes: duration, lesson_type: selectedLessonType, price_eur: price,
-    payment_method: selPay, payment_status: 'pending', status: 'confirmed',
+    payment_method: selPay, payment_status: selPay === 'bank' ? 'pending' : 'paid',
+    status: bookingStatus,
     google_meet_link: meetLink, google_calendar_event_id: gcalId
   });
 
@@ -1127,6 +1167,15 @@ async function submitBooking() {
     const paypalUrl = `https://${paymentInfo.paypalMe}/${price}EUR`;
     document.getElementById('paypal-redirect-wrap').classList.remove('hidden');
     document.getElementById('paypal-redirect-link').href = paypalUrl;
+  }
+  // Bank transfer: show pending message
+  if (selPay === 'bank') {
+    document.getElementById('sl-success-title').textContent = '📋 ' + (lang === 'de' ? 'Buchungsanfrage eingegangen!' : lang === 'it' ? 'Richiesta ricevuta!' : 'Booking request received!');
+    document.getElementById('sl-success-msg').textContent = lang === 'de'
+      ? 'Bitte überweise jetzt €' + price + ' auf das angegebene Konto. Dein Termin wird nach Zahlungseingang bestätigt.'
+      : lang === 'it'
+      ? 'Effettua il bonifico di €' + price + '. La prenotazione sarà confermata dopo il pagamento.'
+      : 'Please transfer €' + price + ' to the account shown. Your lesson will be confirmed once payment is received.';
   }
   document.getElementById('view-book').classList.add('hidden');
   document.getElementById('view-success').classList.remove('hidden');
@@ -1266,6 +1315,11 @@ async function showDashContent() {
     const rescheduleBtn = canReschedule && b.status === 'confirmed'
       ? `<button onclick="startReschedule('${b.id}','${b.booking_date}','${b.booking_time.slice(0,5)}','${b.student_email}','${b.student_name}')" style="margin-top:6px;padding:4px 10px;border-radius:6px;border:1px solid #1D9E75;background:transparent;color:#1D9E75;font-size:11px;font-weight:600;cursor:pointer;font-family:inherit;">📅 Verschieben</button>`
       : '';
+    // Confirm payment button: admin only, for pending bank transfers
+    const confirmPayBtn = isAdmin && b.status === 'pending' && b.payment_method === 'bank'
+      ? `<button onclick="confirmPayment('${b.id}')" style="margin-top:6px;padding:4px 10px;border-radius:6px;border:1px solid #1D9E75;background:#1D9E75;color:#fff;font-size:11px;font-weight:600;cursor:pointer;font-family:inherit;">✅ Zahlung bestätigen</button>`
+      : '';
+
     // Cancel button: student >12h, admin always
     const cancelBtn = canReschedule && b.status === 'confirmed'
       ? `<button onclick="cancelBooking('${b.id}','${b.google_calendar_event_id||''}')" style="margin-top:6px;margin-left:6px;padding:4px 10px;border-radius:6px;border:1px solid #c5221f;background:transparent;color:#c5221f;font-size:11px;font-weight:600;cursor:pointer;font-family:inherit;">✕ Stornieren</button>`
@@ -1276,7 +1330,7 @@ async function showDashContent() {
         <div class="dash-time">${b.booking_time.slice(0,5)} – ${minToTime(timeToMin(b.booking_time.slice(0,5))+50)} Uhr · ${b.duration_minutes||50} min</div>
         <div class="dash-sub">${isAdmin ? b.student_name + ' · ' : ''}${b.payment_method==='paypal'?'PayPal':'Bank'} · €${b.price_eur}</div>
         ${b.google_meet_link?`<a href="${b.google_meet_link}" target="_blank" class="dash-meet">🎥 Join Google Meet</a>`:''}
-        ${rescheduleBtn}${cancelBtn}
+        ${rescheduleBtn}${cancelBtn}${confirmPayBtn}
       </div>
       <span class="pill ${statusClass}">${statusLabel}</span>
     </div>`;
@@ -1301,6 +1355,19 @@ function loadSavedUser() {
   if (l) document.getElementById('inp-last').value = l;
   if (e) { document.getElementById('inp-email').value = e; document.getElementById('inp-email').readOnly = true; }
   if (f||l||e) checkReady();
+}
+
+// ══════════════════════════════════════════════
+// CONFIRM PAYMENT (admin only)
+// ══════════════════════════════════════════════
+async function confirmPayment(bookingId) {
+  const { error } = await sb.from('bookings').update({
+    payment_status: 'paid',
+    status: 'confirmed'
+  }).eq('id', bookingId);
+  if (error) { alert('Fehler: ' + error.message); return; }
+  showDashContent();
+  loadDataForWeek();
 }
 
 // ══════════════════════════════════════════════
@@ -1446,6 +1513,7 @@ loadSavedUser();
 renderAll();
 loadDataForWeek();
 loadPaymentInfo();
+setPay('paypal');
 </script>
 </body>
 </html>
