@@ -29,7 +29,7 @@ body{font-family:'Inter',system-ui,sans-serif;background:#f8f9fa;color:#3c4043;f
 
 /* ── MAIN LAYOUT ── */
 .main{display:grid;grid-template-columns:1fr 340px;height:calc(100vh - 113px);}
-.cal-panel{overflow:hidden;display:flex;flex-direction:column;border-right:1px solid #dadce0;}
+.cal-panel{overflow:visible;display:flex;flex-direction:column;border-right:1px solid #dadce0;}
 .side-panel{overflow-y:auto;background:#fff;}
 
 /* ── WEEK NAV ── */
@@ -52,7 +52,7 @@ body{font-family:'Inter',system-ui,sans-serif;background:#f8f9fa;color:#3c4043;f
 .view-btn.active{background:#e8f0fe;color:#1a73e8;font-weight:500;}
 
 /* ── WEEK GRID ── */
-.week-grid{flex:1;overflow-y:auto;overflow-x:hidden;position:relative;}
+.week-grid{flex:1;overflow-y:auto;overflow-x:clip;position:relative;}
 .week-grid::-webkit-scrollbar{width:6px;}
 .week-grid::-webkit-scrollbar-thumb{background:#dadce0;border-radius:3px;}
 
@@ -82,11 +82,14 @@ body{font-family:'Inter',system-ui,sans-serif;background:#f8f9fa;color:#3c4043;f
 .day-num.off-day:hover{background:transparent;}
 
 /* ── TIME GRID ── */
-.time-grid{display:grid;grid-template-columns:58px repeat(7,1fr);position:relative;}
+.time-grid{display:grid;grid-template-columns:72px repeat(7,1fr);position:relative;}
 .time-label{
   font-size:11px;color:#70757a;text-align:right;
-  padding-right:6px;height:60px;display:flex;align-items:flex-start;
-  padding-top:2px;user-select:none;width:52px;min-width:52px;
+  padding-right:10px;padding-left:4px;
+  height:60px;display:flex;align-items:flex-start;
+  padding-top:2px;user-select:none;
+  width:72px;min-width:72px;overflow:visible;
+  white-space:nowrap;
 }
 .time-col{border-left:1px solid #dadce0;position:relative;height:60px;}
 .time-col.off{background:#f8f9fa;}
@@ -247,8 +250,8 @@ body{font-family:'Inter',system-ui,sans-serif;background:#f8f9fa;color:#3c4043;f
   }
   .side-inner{padding:16px;}
   .side-mini-cal{display:none;} /* hide mini cal on mobile */
-  .grid-header{grid-template-columns:40px repeat(7,1fr);}
-  .time-grid{grid-template-columns:40px repeat(7,1fr);}
+  .grid-header{grid-template-columns:56px repeat(7,1fr);}
+  .time-grid{grid-template-columns:56px repeat(7,1fr);}
   .day-name{font-size:9px;letter-spacing:0;}
   .day-num{font-size:16px;width:30px;height:30px;}
   .week-title{font-size:14px;}
@@ -708,7 +711,7 @@ function renderWeekHeader() {
   const header = document.getElementById('grid-header');
   const x = T[lang];
   const cols = viewMode === 'day' ? 1 : 7;
-  header.style.gridTemplateColumns = '58px repeat(' + cols + ',1fr)';
+  header.style.gridTemplateColumns = '72px repeat(' + cols + ',1fr)';
   header.innerHTML = '<div style="border-left:none;padding:8px 4px;"></div>';
   const today = new Date(); today.setHours(0,0,0,0);
 
@@ -733,7 +736,7 @@ function renderWeekHeader() {
 function renderTimeGrid() {
   const grid = document.getElementById('time-grid');
   const cols = viewMode === 'day' ? 1 : 7;
-  grid.style.gridTemplateColumns = '58px repeat(' + cols + ',1fr)';
+  grid.style.gridTemplateColumns = '72px repeat(' + cols + ',1fr)';
   grid.innerHTML = '';
   const today = new Date(); today.setHours(0,0,0,0);
 
@@ -783,27 +786,40 @@ function renderTimeGrid() {
         // For students use blockedRanges, for admin use full events with titles
         // Always use blockedRanges for rendering (grey for everyone)
         // Admin additionally sees titles via googleEvents
-        const gBlocks = (googleBusy[ds]||[]).map(g => ({
-          startMin: g.startMin,
-          endMin: g.endMin,
-          title: isAdmin ? (googleEvents[ds]||[]).find(e => e.startMin === g.startMin)?.title || 'busy' : ''
-        }));
+        // Only show blocks within working hours for this day
+          const dayHours = getWorkHours(d.getDay());
+          const gBlocks = (googleBusy[ds]||[])
+            .filter(g => dayHours && g.startMin >= dayHours.start && g.startMin < dayHours.end)
+            .map(g => ({
+              startMin: g.startMin,
+              endMin: Math.min(g.endMin, dayHours ? dayHours.end : 9999),
+              title: isAdmin ? (googleEvents[ds]||[]).find(e => e.startMin === g.startMin)?.title || 'busy' : ''
+            }));
         gBlocks.forEach(g => {
           const gMin = g.startMin;
           const gEnd = g.endMin;
-          if (gMin === undefined || gMin < h*60 || gMin >= (h+1)*60) return;
-          const topPx = gMin - h*60;
-          const heightPx = Math.max(15, gEnd - gMin);
+          if (gMin === undefined) return;
+          // Only render parts that fall within this hour row
+          const rowStart = h * 60;
+          const rowEnd = (h + 1) * 60;
+          const blockStart = Math.max(gMin, rowStart);
+          const blockEnd = Math.min(gEnd, rowEnd);
+          if (blockStart >= rowEnd || blockEnd <= rowStart) return;
+          const topPx = blockStart - rowStart;
+          const heightPx = Math.max(1, blockEnd - blockStart);
+          const isFirstRow = gMin >= rowStart;
           const ev = document.createElement('div');
-          // Always grey – admin sees title, student sees nothing
-          ev.style.cssText = `position:absolute;left:2px;right:2px;top:${topPx}px;height:${heightPx}px;border-radius:4px;background:#f1f3f4;border-left:3px solid #dadce0;z-index:6;padding:2px 4px;font-size:10px;color:#5f6368;overflow:hidden;cursor:not-allowed;white-space:nowrap;text-overflow:ellipsis;`;
-          ev.textContent = g.title; // empty for students, name for admin
+          ev.style.cssText = `position:absolute;left:2px;right:2px;top:${topPx}px;height:${heightPx}px;border-radius:${isFirstRow?'4px 4px':'0 0'} 4px 4px;background:#f1f3f4;border-left:3px solid #dadce0;z-index:6;padding:2px 4px;font-size:10px;color:#5f6368;overflow:hidden;cursor:not-allowed;white-space:nowrap;text-overflow:ellipsis;`;
+          ev.textContent = isFirstRow ? g.title : '';
           col.appendChild(ev);
-          // 10 min buffer after
-          const gBufMin = gEnd;
-          if (gBufMin >= h*60 && gBufMin < (h+1)*60) {
+          // 10 min buffer AFTER event end (only in correct hour row)
+          const bufStart = gEnd;
+          const bufEnd = gEnd + 10;
+          const bufRowStart = Math.max(bufStart, rowStart);
+          const bufRowEnd = Math.min(bufEnd, rowEnd);
+          if (bufRowStart < rowEnd && bufRowEnd > rowStart) {
             const bufEl = document.createElement('div');
-            bufEl.style.cssText = `position:absolute;left:2px;right:2px;top:${gBufMin-h*60}px;height:10px;border-radius:0 0 4px 4px;background:#f1f3f4;z-index:6;cursor:not-allowed;`;
+            bufEl.style.cssText = `position:absolute;left:2px;right:2px;top:${bufRowStart-rowStart}px;height:${bufRowEnd-bufRowStart}px;background:#ebebeb;border-left:3px solid #dadce0;z-index:6;cursor:not-allowed;`;
             col.appendChild(bufEl);
           }
         });
