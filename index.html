@@ -784,65 +784,7 @@ function renderTimeGrid() {
         // Draw Google Calendar events
         const gEvents = (googleEvents[ds]||[]);
         // For students use blockedRanges, for admin use full events with titles
-        // Always use blockedRanges for rendering (grey for everyone)
-        // Admin additionally sees titles via googleEvents
-        // Only show blocks within working hours for this day
-          const dayHours = getWorkHours(d.getDay());
-          const gBlocks = (googleBusy[ds]||[])
-            .filter(g => dayHours && g.startMin >= dayHours.start && g.startMin < dayHours.end)
-            .map(g => ({
-              startMin: g.startMin,
-              endMin: Math.min(g.endMin, dayHours ? dayHours.end : 9999),
-              title: isAdmin ? (googleEvents[ds]||[]).find(e => e.startMin === g.startMin)?.title || 'busy' : ''
-            }));
-        gBlocks.forEach(g => {
-          const gMin = g.startMin;
-          const gEnd = g.endMin;
-          if (gMin === undefined) return;
-          // Only render parts that fall within this hour row
-          const rowStart = h * 60;
-          const rowEnd = (h + 1) * 60;
-          const blockStart = Math.max(gMin, rowStart);
-          const blockEnd = Math.min(gEnd, rowEnd);
-          if (blockStart >= rowEnd || blockEnd <= rowStart) return;
-          const topPx = blockStart - rowStart;
-          const heightPx = Math.max(1, blockEnd - blockStart);
-          const isFirstRow = gMin >= rowStart;
-          const ev = document.createElement('div');
-          ev.style.cssText = `position:absolute;left:2px;right:2px;top:${topPx}px;height:${heightPx}px;border-radius:${isFirstRow?'4px 4px':'0 0'} 4px 4px;background:#f1f3f4;border-left:3px solid #dadce0;z-index:6;padding:2px 4px;font-size:10px;color:#5f6368;overflow:hidden;cursor:not-allowed;white-space:nowrap;text-overflow:ellipsis;`;
-          ev.textContent = isFirstRow ? g.title : '';
-          col.appendChild(ev);
-          // 10 min buffer AFTER event end (only in correct hour row)
-          const bufStart = gEnd;
-          const bufEnd = gEnd + 10;
-          const bufRowStart = Math.max(bufStart, rowStart);
-          const bufRowEnd = Math.min(bufEnd, rowEnd);
-          if (bufRowStart < rowEnd && bufRowEnd > rowStart) {
-            const bufEl = document.createElement('div');
-            bufEl.style.cssText = `position:absolute;left:2px;right:2px;top:${bufRowStart-rowStart}px;height:${bufRowEnd-bufRowStart}px;background:#ebebeb;border-left:3px solid #dadce0;z-index:6;cursor:not-allowed;`;
-            col.appendChild(bufEl);
-          }
-        });
-
-        // Draw Supabase bookings
-        const allBooked = (bookedSlots[ds]||[]);
-        allBooked.forEach(b => {
-          const bMin = timeToMin(b.time);
-          if (bMin < h*60 || bMin >= (h+1)*60) return;
-          const topPx = bMin - h*60;
-          const lessonH = b.duration || 50;
-          const ev = document.createElement('div');
-          ev.style.cssText = `position:absolute;left:2px;right:2px;top:${topPx}px;height:${lessonH}px;border-radius:4px 4px 0 0;background:${isAdmin?'#d2e3fc':'#dadce0'};border-left:3px solid ${isAdmin?'#1a73e8':'#70757a'};z-index:6;padding:2px 4px;font-size:10px;color:${isAdmin?'#1a73e8':'transparent'};overflow:hidden;cursor:not-allowed;white-space:nowrap;text-overflow:ellipsis;`;
-          ev.textContent = isAdmin ? (b.studentName||'(booked)') : '';
-          col.appendChild(ev);
-          // Buffer block after lesson (10 min)
-          const bufMin = bMin + lessonH;
-          if (bufMin >= h*60 && bufMin < (h+1)*60) {
-            const bufEl = document.createElement('div');
-            bufEl.style.cssText = `position:absolute;left:2px;right:2px;top:${bufMin-h*60}px;height:10px;border-radius:0 0 4px 4px;background:#f1f3f4;border-left:3px solid ${isAdmin?'#1a73e8':'#dadce0'};z-index:6;cursor:not-allowed;`;
-            col.appendChild(bufEl);
-          }
-        });
+        // No event blocks per hour row - handled after grid is built below
         for (let q = 0; q < 4; q++) {
           const slotMin = h * 60 + q * 15;
           if (slotMin + 50 > hours.end) continue;
@@ -864,6 +806,86 @@ function renderTimeGrid() {
       }
       grid.appendChild(col);
     }
+  }
+
+  // ── Overlay event blocks on top of the time grid ──
+  // Each col is 60px tall per hour. DAY_START offset.
+  const colEls = grid.querySelectorAll('.time-col');
+  const totalCols = viewMode === 'day' ? 1 : 7;
+
+  for (let i = 0; i < totalCols; i++) {
+    const d2 = viewMode === 'day' ? (selDate || today) : addDays(weekStart, i);
+    const ds2 = dateStr(d2);
+    const dayHours2 = getWorkHours(d2.getDay());
+    if (!dayHours2) continue;
+
+    // Get all col elements for this day (one per hour row)
+    // We'll use a wrapper approach: find the first col for this day and use position relative to grid
+
+    // Collect Google blocks
+    const gBlocks2 = (googleBusy[ds2]||[])
+      .filter(g => g.startMin < dayHours2.end && g.endMin > dayHours2.start)
+      .map(g => ({
+        startMin: Math.max(g.startMin, dayHours2.start),
+        endMin: Math.min(g.endMin, dayHours2.end),
+        title: isAdmin ? ((googleEvents[ds2]||[]).find(e => e.startMin === g.startMin)?.title || 'busy') : '',
+        type: 'google'
+      }));
+
+    // Collect Supabase bookings
+    const sBlocks2 = (bookedSlots[ds2]||[]).map(b => ({
+      startMin: timeToMin(b.time),
+      endMin: timeToMin(b.time) + (b.duration||50),
+      bufferEnd: timeToMin(b.time) + (b.duration||50) + 10,
+      title: isAdmin ? (b.studentName||'booked') : '',
+      type: 'supabase'
+    }));
+
+    // For each block, find the correct col elements and render
+    [...gBlocks2, ...sBlocks2].forEach(blk => {
+      const startH = Math.floor(blk.startMin / 60);
+      const endH = Math.ceil((blk.type === 'supabase' ? blk.bufferEnd : blk.endMin + 10) / 60);
+
+      for (let hh = startH; hh < endH; hh++) {
+        if (hh < DAY_START || hh >= DAY_END) continue;
+        // Find the col element: col index in grid = (hh - DAY_START) * (totalCols+1) + 1 + i
+        // grid has: per row: 1 time-label + totalCols time-cols
+        const colIndex = (hh - DAY_START) * (totalCols + 1) + i;
+        const colEls2 = grid.querySelectorAll('.time-col');
+        const col2 = colEls2[colIndex];
+        if (!col2) continue;
+
+        const rowStart = hh * 60;
+        const rowEnd = (hh + 1) * 60;
+
+        // Main block
+        const bStart = Math.max(blk.startMin, rowStart);
+        const bEnd = Math.min(blk.type === 'google' ? blk.endMin : blk.endMin, rowEnd);
+        if (bStart < bEnd) {
+          const ev = document.createElement('div');
+          const topPx = bStart - rowStart;
+          const heightPx = Math.max(1, bEnd - bStart);
+          const bg = blk.type === 'google' ? '#f1f3f4' : (isAdmin ? '#d2e3fc' : '#dadce0');
+          const borderColor = blk.type === 'google' ? '#dadce0' : (isAdmin ? '#1a73e8' : '#70757a');
+          const textColor = isAdmin ? '#5f6368' : 'transparent';
+          const isFirst = blk.startMin >= rowStart;
+          ev.style.cssText = `position:absolute;left:2px;right:2px;top:${topPx}px;height:${heightPx}px;border-radius:${isFirst?'4px 4px 0 0':'0'};background:${bg};border-left:3px solid ${borderColor};z-index:6;padding:2px 4px;font-size:10px;color:${textColor};overflow:hidden;cursor:not-allowed;white-space:nowrap;text-overflow:ellipsis;`;
+          ev.textContent = isFirst ? blk.title : '';
+          col2.appendChild(ev);
+        }
+
+        // Buffer (10 min after event end)
+        const bufStart = blk.type === 'google' ? blk.endMin : blk.endMin;
+        const bufEnd = bufStart + 10;
+        const bufRowStart = Math.max(bufStart, rowStart);
+        const bufRowEnd = Math.min(bufEnd, rowEnd);
+        if (bufRowStart < bufRowEnd && bufRowStart < rowEnd) {
+          const bufEl = document.createElement('div');
+          bufEl.style.cssText = `position:absolute;left:2px;right:2px;top:${bufRowStart-rowStart}px;height:${bufRowEnd-bufRowStart}px;background:#ebebeb;z-index:6;cursor:not-allowed;`;
+          col2.appendChild(bufEl);
+        }
+      }
+    });
   }
 
   // Current time line
